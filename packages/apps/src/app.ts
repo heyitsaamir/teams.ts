@@ -239,6 +239,11 @@ export class App<TPlugin extends IPlugin = IPlugin> {
     const tenantId =
       ('tenantId' in this.options ? this.options.tenantId : undefined) ||
       process.env.TENANT_ID;
+    if (tenantId) {
+      this.log.info(`Using tenantId: ${tenantId}. Assuming single-tenant app.`);
+    } else {
+      this.log.debug('No tenantId provided. Assuming multi-tenant app.');
+    }
     const token = 'token' in this.options ? this.options.token : undefined;
 
     if (clientId && clientSecret) {
