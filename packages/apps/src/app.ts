@@ -401,6 +401,22 @@ export class App<TPlugin extends IPlugin = IPlugin> {
   }
 
   /**
+   * get a tenant specific graph client
+   * @remarks
+   * This will use the tenant id to get a token for the graph client.
+   * @param tenantId the tenant id to get the graph client for
+   * @returns 
+   */
+  getTenantGraph(tenantId: string) {
+    const getTenantSpecificGraph = async () => {
+      return this.getOrRefreshTenantToken(tenantId);
+    };
+    return new GraphClient(
+      this.client.clone({ token: getTenantSpecificGraph })
+    );
+  }
+
+  /**
    * subscribe to an event
    * @param name event to subscribe to
    * @param cb callback to invoke
