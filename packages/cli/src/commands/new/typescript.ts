@@ -12,6 +12,8 @@ import { IContext } from '../../context';
 import { Project } from '../../project';
 import { Settings } from '../../settings';
 
+import { templateHooks } from './templatehook';
+
 const ArgsSchema = z.object({
   name: z.string(),
   template: z.string(),
@@ -65,8 +67,8 @@ export function Typescript(_: IContext): CommandModule<{}, z.infer<typeof ArgsSc
           type: 'string',
           describe: 'include M365 Agents Toolkit configuration',
           choices: fs.readdirSync(atkPath)
-          .filter((type) => fs.existsSync(path.join(atkPath, type, 'typescript')))
-          .flat()
+            .filter((type) => fs.existsSync(path.join(atkPath, type, 'typescript')))
+            .flat()
         })
         .option('client-id', {
           type: 'string',
@@ -131,6 +133,11 @@ export function Typescript(_: IContext): CommandModule<{}, z.infer<typeof ArgsSc
 
       if (process.env.AZURE_OPENAI_ENDPOINT) {
         builder.addEnv('AZURE_OPENAI_ENDPOINT', process.env.AZURE_OPENAI_ENDPOINT);
+      }
+
+      // Template-specific logic
+      if (templateHooks[template]) {
+        await templateHooks[template](builder, { name, template });
       }
 
       const project = builder.build();

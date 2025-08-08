@@ -1,0 +1,50 @@
+import { App } from '@microsoft/teams.apps';
+import { DevtoolsPlugin } from '@microsoft/teams.dev';
+import { ChatPrompt } from '@microsoft/teams.ai';
+import { McpClientPlugin } from '@microsoft/teams.mcpclient';
+import { OpenAIChatModel } from '@microsoft/teams.openai';
+import { ConsoleLogger } from '@microsoft/teams.common/logging';
+
+const app = new App({
+  plugins: [
+    new DevtoolsPlugin()
+  ]
+});
+
+const logger = new ConsoleLogger("{{ toKebabCase name }}", { level: 'debug' });
+
+
+export const createMCPAgent = (mcpServerName: string, mcpServerLink: string) => {
+  const prompt = new ChatPrompt({
+    instructions: 
+    `You are a MCP Agent that is tied to the {{capitalize name}} MCP server. 
+    Your main purpose is to call on tools available from the MCP server. 
+    For ANY query related to {{capitalize name}}, use the tools to the best of your ability to answer.`,
+    model: new OpenAIChatModel({
+      model: process.env.AOAI_MODEL!,
+      apiKey: process.env.AOAI_API_KEY!,
+      endpoint: process.env.AOAI_ENDPOINT!,
+      apiVersion: '2025-04-01-preview'
+    }),
+    logger,
+  }, [new McpClientPlugin({ logger })])
+    .usePlugin('mcpClient', {
+      url: process.env.MCP_URL,
+    });
+
+  return prompt;
+}
+
+const prompt = createMCPAgent('{{capitalize name}}', process.env.MCP_URL);
+
+app.on('message', async ({ send, activity }) => {
+  await send({ type: 'typing' });
+  const res = await prompt.send(activity.text);
+  console.log(res);
+
+  await send({ type: 'message', text: res.content });
+});
+
+(async () => {
+  await app.start();
+})();
