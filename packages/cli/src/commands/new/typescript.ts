@@ -137,7 +137,7 @@ export function Typescript(_: IContext): CommandModule<{}, z.infer<typeof ArgsSc
 
       // Template-specific logic
       if (templateHooks[template]) {
-        await templateHooks[template](builder, { name, template });
+        await templateHooks[template](builder);
       }
 
       const project = builder.build();
