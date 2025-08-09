@@ -2,9 +2,7 @@ import { z } from 'zod';
 
 import { ProjectBuilder } from '../../project';
 
-type TemplateHook = (builder: ProjectBuilder, context: {
-    name: string; template: string;
-}) => Promise<void>;
+type TemplateHook = (builder: ProjectBuilder) => Promise<void>;
 
 export const templateHooks: Record<string, TemplateHook> = {
     'mcpagent': async (builder) => {
