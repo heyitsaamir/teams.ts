@@ -5,40 +5,38 @@ import { McpClientPlugin } from '@microsoft/teams.mcpclient';
 import { OpenAIChatModel } from '@microsoft/teams.openai';
 import { ConsoleLogger } from '@microsoft/teams.common/logging';
 
-const logger = new ConsoleLogger("learn-agent", { level: 'debug' });
+const logger = new ConsoleLogger('{{ toKebabCase name }}', { level: 'debug' });
 
 const app = new App({
-plugins: [
-new DevtoolsPlugin(),
+plugins: [ new DevtoolsPlugin() ],
 logger
-]
 });
 
 const prompt = new ChatPrompt({
-  instructions:
-    `You are a MCP Agent that is tied to the ${process.env.SERVER_NAME} MCP server.
+instructions:
+`You are an MCP Agent that is tied to the ${process.env.SERVER_NAME} MCP server.
 Your main purpose is to call on tools available from the MCP server.
 For ANY query related to ${process.env.SERVER_NAME}, use the tools to the best of your ability to answer.`,
-  model: new OpenAIChatModel({
-    model: 'gpt-4o',
-    apiKey: process.env.AZURE_OPENAI_API_KEY!,
-    endpoint: process.env.AZURE_OPENAI_ENDPOINT!,
-    apiVersion: '2025-04-01-preview'
-  }),
-  logger,
+model: new OpenAIChatModel({
+model: 'gpt-4o',
+apiKey: process.env.AZURE_OPENAI_API_KEY!,
+endpoint: process.env.AZURE_OPENAI_ENDPOINT!,
+apiVersion: '2025-04-01-preview'
+}),
+logger,
 }, [new McpClientPlugin({ logger })])
-  .usePlugin('mcpClient', {
-    url: process.env.MCP_URL,
-  });
+.usePlugin('mcpClient', {
+url: process.env.MCP_URL!,
+});
 
 app.on('message', async ({ send, activity }) => {
-  await send({ type: 'typing' });
-  const res = await prompt.send(activity.text);
-  console.log(res);
+await send({ type: 'typing' });
+const res = await prompt.send(activity.text);
+console.log(res);
 
-  await send({ type: 'message', text: res.content });
+await send({ type: 'message', text: res.content });
 });
 
 (async () => {
-  await app.start();
+await app.start();
 })();
