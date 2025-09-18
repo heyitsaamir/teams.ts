@@ -9,6 +9,7 @@
     "dist",
     "README.md"
   ],
+  "type": "module",
   "scripts": {
     "clean": "npx rimraf ./dist",
     "lint": "npx eslint",
