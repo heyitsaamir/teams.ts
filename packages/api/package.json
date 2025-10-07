@@ -31,7 +31,7 @@
     "clean": "npx rimraf ./dist",
     "lint": "npx eslint",
     "lint:fix": "npx eslint --fix",
-    "build": "npx tsc",
+    "build": "npx tsdown",
     "test": "npx jest"
   },
   "dependencies": {
@@ -51,6 +51,7 @@
     "jsonwebtoken": "^9.0.2",
     "rimraf": "^6.0.1",
     "ts-jest": "^29.2.5",
+    "tsdown": "^0.15.6",
     "typescript": "^5.4.5"
   }
 }

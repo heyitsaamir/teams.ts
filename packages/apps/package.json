@@ -33,7 +33,7 @@
     "clean": "npx rimraf ./dist",
     "lint": "npx eslint",
     "lint:fix": "npx eslint --fix",
-    "build": "npx tsc",
+    "build": "npx tsdown",
     "test": "npx jest",
     "generate": "npx quicktype -s schema -l typescript ./manifest.schema.json -o ./src/manifest.ts --prefer-unions --prefer-types --just-types"
   },
@@ -64,6 +64,7 @@
     "rimraf": "^6.0.1",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
+    "tsdown": "^0.15.6",
     "typescript": "^5.4.5"
   }
 }
