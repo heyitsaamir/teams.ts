@@ -1,13 +1,13 @@
-/** @type {import('tsup').Options} */
-module.exports = {
+import { defineConfig } from 'tsdown'
+
+export default defineConfig({
   dts: true,
   minify: false,
-  bundle: false,
+  unbundle: true,
   sourcemap: true,
   treeshake: true,
-  splitting: true,
   clean: true,
   outDir: 'dist',
   entry: ['src/index.ts'],
   format: ['cjs'],
-};
+});

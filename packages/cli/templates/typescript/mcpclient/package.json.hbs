@@ -11,9 +11,9 @@
 ],
 "scripts": {
 "clean": "npx rimraf ./dist",
-"build": "npx tsc",
+"build": "npx tsdown",
 "start": "node .",
-"dev": "npx nodemon -w \"./src/**\" -e ts --exec \"node -r ts-node/register -r dotenv/config ./src/index.ts\""
+"dev": "npx tsx watch -r dotenv/config src/index.ts"
 },
 "dependencies": {
 "@microsoft/teams.api": "latest",
@@ -30,9 +30,9 @@
 "@types/node": "^22.5.4",
 "cross-env": "^7.0.3",
 "dotenv": "^16.4.5",
-"nodemon": "^3.1.4",
 "rimraf": "^6.0.1",
-"ts-node": "^10.9.2",
+"tsx": "^4.20.6",
+"tsdown": "^0.15.6",
 "typescript": "^5.4.5"
 }
 }
