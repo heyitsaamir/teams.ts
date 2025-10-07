@@ -1,4 +1,4 @@
-const base = require('@microsoft/teams.config/tsup.config');
+const base = require('@microsoft/teams.config/tsdown.config');
 
 /**
  * @type {import('tsup').Options}

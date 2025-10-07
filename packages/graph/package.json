@@ -28,7 +28,7 @@
   ],
   "scripts": {
     "clean": "npx rimraf ./dist",
-    "build": "npx cross-env NODE_OPTIONS='--max-old-space-size=16384' npx tsup && npx rimraf ./dist/index.d.mts",
+    "build": "npx cross-env NODE_OPTIONS='--max-old-space-size=16384' npx tsdown && npx rimraf ./dist/index.d.mts",
     "lint": "npx eslint",
     "lint:fix": "npx eslint --fix",
     "test": "npx jest"
@@ -47,7 +47,7 @@
     "rimraf": "^6.0.1",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
-    "tsup": "^8.4.0",
+    "tsdown": "^0.15.6",
     "typescript": "^5.4.5"
   }
 }

@@ -3,7 +3,7 @@ const pkg = require('./package.json');
 
 /** @type {import('tsup').Options} */
 module.exports = {
-  ...require('@microsoft/teams.config/tsup.config'),
+  ...require('@microsoft/teams.config/tsdown.config'),
   minify: true,
   bundle: false, // Keep bundle false to preserve directory structure
   sourcemap: false,

@@ -1,8 +1,8 @@
-/** @type {import('tsup').Options} */
+/** @type {import('tsdown').Options} */
 module.exports = {
   dts: true,
   minify: false,
-  bundle: false,
+  unbundle: true,
   sourcemap: true,
   treeshake: true,
   splitting: true,

@@ -8,7 +8,7 @@
   "files": [
     "eslint.config.js",
     "jest.config.js",
-    "tsup.config.js"
+    "tsdown.config.js"
   ],
   "publishConfig": {
     "access": "public"
