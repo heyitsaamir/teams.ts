@@ -11,7 +11,7 @@
 ],
 "scripts": {
 "clean": "npx rimraf ./dist",
-"build": "npx tsdown",
+"build": "npx tsc",
 "start": "node .",
 "dev": "npx tsx watch -r dotenv/config src/index.ts"
 },
@@ -29,8 +29,8 @@
 "@types/node": "^22.5.4",
 "dotenv": "^16.4.5",
 "rimraf": "^6.0.1",
-"tsx": "^4.20.6",
-"tsdown": "^0.15.6",
+"tsx": "^4.20.6"
+
 "typescript": "^5.4.5"
 }
 }
