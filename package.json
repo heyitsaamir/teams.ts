@@ -45,5 +45,8 @@
     "bluehawk": "^1.6.0",
     "turbo": "^2.4.0",
     "typescript": "^5.4.5"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.52.4"
   }
 }
