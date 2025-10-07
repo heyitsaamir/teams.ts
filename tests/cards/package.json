@@ -21,16 +21,17 @@
     "dev:teamsfx:launch-testtool": "npx env-cmd --silent -f env/.env.testtool teamsapptester start"
   },
   "dependencies": {
-    "@microsoft/teams.apps": "2.0.1",
     "@microsoft/teams.ai": "2.0.1",
-    "@microsoft/teams.dev": "2.0.1",
-    "@microsoft/teams.cards": "2.0.1"
+    "@microsoft/teams.apps": "2.0.1",
+    "@microsoft/teams.cards": "2.0.1",
+    "@microsoft/teams.dev": "2.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.5.4",
     "dotenv": "^16.4.5",
+    "env-cmd": "latest",
+    "rimraf": "^6.0.1",
     "tsx": "^4.20.6",
-    "typescript": "^5.4.5",
-    "env-cmd": "latest"
+    "typescript": "^5.4.5"
   }
 }
