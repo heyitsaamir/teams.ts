@@ -4,7 +4,7 @@ import { getInjectedUrl, getInjectedRequestConfig } from './utils/url';
 
 import type { CallOptions, EndpointRequest, SchemaVersion } from './types';
 
-// Build-time constant injected by tsup
+// Build-time constant injected by tsdown
 declare const __PACKAGE_VERSION__: string;
 
 export { CallOptions, EndpointRequest, SchemaVersion } from './types';

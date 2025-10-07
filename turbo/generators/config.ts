@@ -84,9 +84,9 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
       },
       {
         type: "add",
-        path: "packages/{{name}}/tsup.config.js",
+        path: "packages/{{name}}/tsdown.config.js",
         template:
-          "module.exports = require('@microsoft/teams.config/tsup.config');\n",
+          "module.exports = require('@microsoft/teams.config/tsdown.config');\n",
       },
       {
         type: "add",

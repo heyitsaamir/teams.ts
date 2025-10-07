@@ -1,7 +1,7 @@
 const base = require('@microsoft/teams.config/tsdown.config');
 
 /**
- * @type {import('tsup').Options}
+ * @type {import('tsdown').Options}
  */
 module.exports = {
   ...base,

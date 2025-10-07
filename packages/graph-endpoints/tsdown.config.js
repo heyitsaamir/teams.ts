@@ -1,7 +1,7 @@
 const pkg = require('./package.json');
 
 
-/** @type {import('tsup').Options} */
+/** @type {import('tsdown').Options} */
 module.exports = {
   ...require('@microsoft/teams.config/tsdown.config'),
   minify: true,
