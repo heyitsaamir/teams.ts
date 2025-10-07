@@ -13,9 +13,9 @@
     "clean": "npx rimraf ./dist",
     "lint": "npx eslint",
     "lint:fix": "npx eslint --fix",
-    "build": "npx tsup",
+    "build": "npx tsdown",
     "start": "node .",
-    "dev": "npx nodemon -w \"./src/**\" -e ts --exec \"node -r ts-node/register -r dotenv/config ./src/index.ts\""
+    "dev": "npx tsx watch -r dotenv/config src/index.ts"
   },
   "dependencies": {
     "@microsoft/teams.api": "2.0.1",
@@ -31,10 +31,9 @@
     "@microsoft/teams.config": "2.0.1",
     "@types/node": "^22.0.2",
     "dotenv": "^16.4.5",
-    "nodemon": "^3.1.4",
     "rimraf": "^6.0.1",
-    "ts-node": "^10.9.2",
-    "tsup": "^8.4.0",
+    "tsdown": "^0.15.6",
+    "tsx": "^4.20.6",
     "typescript": "^5.4.5"
   }
 }
