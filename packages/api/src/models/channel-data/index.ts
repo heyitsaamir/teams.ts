@@ -1,6 +1,7 @@
 import { MeetingInfo } from '../meeting';
 import { MembershipSource } from '../membership-source';
 
+import { AppInfo } from './app-info';
 import { ChannelInfo } from './channel-info';
 import { NotificationInfo } from './notification-info';
 import { OnBehalfOf } from './on-behalf-of';
@@ -93,7 +94,7 @@ export type ChannelData = {
    * List of teams that a channel was shared with.
    */
   sharedWithTeams?: TeamInfo[]
-  
+
   /**
    * List of teams that a channel was unshared from.
    */
@@ -103,6 +104,8 @@ export type ChannelData = {
    * Information about the source of a member that was added or removed from a shared channel.
    */
   membershipSource?: MembershipSource;
+
+  app?: AppInfo;
 };
 
 export * from './channel-info';
@@ -111,3 +114,4 @@ export * from './on-behalf-of';
 export * from './settings';
 export * from './team-info';
 export * from './tenant-info';
+export * from './app-info';

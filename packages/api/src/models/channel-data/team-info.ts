@@ -1,3 +1,5 @@
+import { TeamTypes } from './team-types';
+
 /**
  *
  * An interface representing TeamInfo.
@@ -21,7 +23,22 @@ export type TeamInfo = {
   aadGroupId?: string;
 
   /**
-   * @member {string} [type] The tenant ID of the team.
+   * @member {string} [tenantId] The tenant ID of the team.
    */
   tenantId?: string;
+
+  /**
+   * @member {TeamTypes} [type] The type of the team.
+   */
+  type?: TeamTypes;
+
+  /**
+   * @member {number} Count of channels in the team.
+   */
+  channelCount?: number;
+
+  /**
+   * @member {number} Count of the members in the team.
+   */
+  memberCount?: number;
 };
