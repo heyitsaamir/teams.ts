@@ -1,0 +1,49 @@
+# Azure Pipelines equivalent of .github/workflows/build-test-lint.yml
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - '*'
+
+# Manual trigger support
+schedules: []
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+strategy:
+  matrix:
+    node_20:
+      node_version: '20.x'
+    node_21:
+      node_version: '21.x'
+    node_22:
+      node_version: '22.x'
+    node_23:
+      node_version: '23.x'
+
+steps:
+  - checkout: self
+    clean: true
+
+  - task: NodeTool@0
+    displayName: 'Use Node.js $(node_version)'
+    inputs:
+      versionSpec: '$(node_version)'
+
+  - script: npm install
+    displayName: 'Install Dependencies'
+
+  - script: npm run lint
+    displayName: 'Lint'
+
+  - script: npm run build
+    displayName: 'Build'
+
+  - script: npm run test
+    displayName: 'Test'
