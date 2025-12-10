@@ -1,4 +1,4 @@
-import { ActivityLike, ConversationReference, isInvokeResponse } from '@microsoft/teams.api';
+import { ActivityLike, ConversationReference, InvokeResponse, isInvokeResponse } from '@microsoft/teams.api';
 
 import { ApiClient, GraphClient } from './api';
 import { App } from './app';
@@ -15,7 +15,7 @@ export async function $process<TPlugin extends IPlugin>(
   this: App<TPlugin>,
   sender: ISender,
   event: IActivityEvent
-) {
+): Promise<InvokeResponse> {
   const { token, activity } = event;
 
   this.log.debug(
@@ -119,10 +119,6 @@ export async function $process<TPlugin extends IPlugin>(
     ...pluginContexts
   });
 
-  if (routes.length === 0) {
-    return { status: 200 };
-  }
-
   const send = context.send.bind(context);
   context.send = async (activity: ActivityLike, conversationRef?: ConversationReference) => {
     const res = await send(activity, conversationRef);
@@ -152,13 +148,16 @@ export async function $process<TPlugin extends IPlugin>(
     });
   });
 
+  let response: InvokeResponse;
   try {
-    let res = await next();
+    const res = await next();
 
     await context.stream.close();
 
-    if (!res || !isInvokeResponse(res)) {
-      res = { status: 200, body: res };
+    if (isInvokeResponse(res)) {
+      response = res;
+    } else {
+      response = { status: 200, body: res };
     }
 
     this.onActivityResponse(sender, {
@@ -168,12 +167,15 @@ export async function $process<TPlugin extends IPlugin>(
       response: res,
     });
   } catch (error: any) {
+    response = { status: 500 };
     this.onError({ error, activity, sender });
     this.onActivityResponse(sender, {
       ...ref,
       sender,
       activity,
-      response: { status: 500 },
+      response: response,
     });
   }
+
+  return response;
 }
