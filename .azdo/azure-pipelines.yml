@@ -16,25 +16,14 @@ schedules: []
 pool:
   vmImage: 'ubuntu-latest'
 
-strategy:
-  matrix:
-    node_20:
-      node_version: '20.x'
-    node_21:
-      node_version: '21.x'
-    node_22:
-      node_version: '22.x'
-    node_23:
-      node_version: '23.x'
-
 steps:
   - checkout: self
     clean: true
 
   - task: NodeTool@0
-    displayName: 'Use Node.js $(node_version)'
+    displayName: 'Use Node.js 23.x'
     inputs:
-      versionSpec: '$(node_version)'
+      versionSpec: '23.x'
 
   - script: echo "registry=https://pkgs.dev.azure.com/dynamicscrm/OneCRM/_packaging/DPX-Tools-Upstream/npm/registry/" > .npmrc
     displayName: 'Set NPM registry'
@@ -57,6 +46,23 @@ steps:
 
   - script: npm run build
     displayName: 'Build'
+
+  - script: |
+      mkdir -p $(Build.ArtifactStagingDirectory)/packages
+      for dir in packages/* external/*; do
+        if [ -d "$dir" ] && [ -f "$dir/package.json" ]; then
+          echo "Packing $dir..."
+          (cd "$dir" && npm pack --pack-destination $(Build.ArtifactStagingDirectory)/packages)
+        fi
+      done
+    displayName: 'Pack artifacts'
+
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: '$(Build.ArtifactStagingDirectory)/packages'
+      artifactName: 'npm-packages'
+      publishLocation: 'Container'
+    displayName: 'Publish package artifacts'
 
   - script: npm run test
     displayName: 'Test'
