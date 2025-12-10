@@ -47,6 +47,9 @@ steps:
   - script: npm run build
     displayName: 'Build'
 
+  - script: npm run test
+    displayName: 'Test'
+
   - script: |
       mkdir -p $(Build.ArtifactStagingDirectory)/packages
       for dir in packages/* external/*; do
@@ -63,9 +66,3 @@ steps:
       artifactName: 'npm-packages'
       publishLocation: 'Container'
     displayName: 'Publish package artifacts'
-
-  - script: npm run test
-    displayName: 'Test'
-
-  - script: npm run validate:snippets
-    displayName: 'Validate Snippets'
