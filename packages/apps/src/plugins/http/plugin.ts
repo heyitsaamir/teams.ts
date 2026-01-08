@@ -148,7 +148,7 @@ export class HttpPlugin implements ISender {
     this._server.close();
   }
 
-  async send(activity: ActivityParams, ref: ConversationReference) {
+  async send(activity: ActivityParams, ref: ConversationReference, isTargeted: boolean = false) {
     const api = new Client(
       ref.serviceUrl,
       this.client.clone({
@@ -160,16 +160,18 @@ export class HttpPlugin implements ISender {
       ...activity,
       from: ref.bot,
       conversation: ref.conversation,
+      // Set recipient from ref.user if provided (for targeted messages)
+      ...(ref.user && { recipient: ref.user }),
     };
 
     if (activity.id) {
       const res = await api.conversations
         .activities(ref.conversation.id)
-        .update(activity.id, activity);
+        .update(activity.id, activity, isTargeted);
       return { ...activity, ...res };
     }
 
-    const res = await api.conversations.activities(ref.conversation.id).create(activity);
+    const res = await api.conversations.activities(ref.conversation.id).create(activity, isTargeted);
     return { ...activity, ...res };
   }
 

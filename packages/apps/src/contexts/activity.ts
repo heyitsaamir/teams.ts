@@ -212,11 +212,11 @@ export class ActivityContext<T extends Activity = Activity, TExtraCtx extends {}
     }
   }
 
-  async send(activity: ActivityLike, conversationRef?: ConversationReference) {
-    return await this._plugin.send(toActivityParams(activity), conversationRef ?? this.ref);
+  async send(activity: ActivityLike, conversationRef?: ConversationReference, isTargeted?: boolean) {
+    return await this._plugin.send(toActivityParams(activity), conversationRef ?? this.ref, isTargeted);
   }
 
-  async reply(activity: ActivityLike) {
+  async reply(activity: ActivityLike, isTargeted?: boolean) {
     activity = toActivityParams(activity);
     activity.replyToId = this.activity.id;
 
@@ -228,7 +228,7 @@ export class ActivityContext<T extends Activity = Activity, TExtraCtx extends {}
       }
     }
 
-    return this.send(activity);
+    return this.send(activity, this.ref, isTargeted);
   }
 
   async signin(options?: Partial<SignInOptions>) {
