@@ -276,4 +276,51 @@ describe('MessageActivity', () => {
       expect(mention).toBeUndefined();
     });
   });
+
+  describe('withTargetedRecipient', () => {
+    it('should set isTargeted to true when called with true', () => {
+      const activity = new MessageActivity('hello').withTargetedRecipient(true);
+
+      expect(activity.isTargeted).toBe(true);
+      expect(activity.recipient).toBeUndefined();
+    });
+
+    it('should set isTargeted to true and recipient when called with recipient id', () => {
+      const activity = new MessageActivity('hello').withTargetedRecipient('user-123');
+
+      expect(activity.isTargeted).toBe(true);
+      expect(activity.recipient).toEqual({ id: 'user-123', name: '', role: 'user' });
+    });
+
+    it('should be chainable with other methods', () => {
+      const activity = new MessageActivity('hello')
+        .withImportance('high')
+        .withTargetedRecipient('user-456')
+        .withDeliveryMode('notification');
+
+      expect(activity.text).toBe('hello');
+      expect(activity.importance).toBe('high');
+      expect(activity.deliveryMode).toBe('notification');
+      expect(activity.isTargeted).toBe(true);
+      expect(activity.recipient).toEqual({ id: 'user-456', name: '', role: 'user' });
+    });
+
+    it('should preserve isTargeted and recipient when using from()', () => {
+      const original = new MessageActivity('test')
+        .withTargetedRecipient('user-789')
+        .toInterface();
+
+      const restored = MessageActivity.from(original);
+
+      expect(restored.isTargeted).toBe(true);
+      expect(restored.recipient).toEqual({ id: 'user-789', name: '', role: 'user' });
+    });
+
+    it('should not set recipient when called with true', () => {
+      const activity = new MessageActivity('hello').withTargetedRecipient(true);
+
+      expect(activity.isTargeted).toBe(true);
+      expect(activity.recipient).toBeUndefined();
+    });
+  });
 });

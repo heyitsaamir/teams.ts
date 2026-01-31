@@ -206,6 +206,68 @@ describe('ActivityContext', () => {
         mockRef
       );
     });
+
+    describe('targeted messages', () => {
+      it('sends targeted message with recipient from incoming activity', async () => {
+        const activity = buildIncomingMessageActivity('Hello world');
+        context = buildActivityContext(activity);
+
+        const targetedActivity = new MessageActivity('Secret message')
+          .withTargetedRecipient(true);
+
+        await context.send(targetedActivity);
+
+        expect(mockSender.send).toHaveBeenCalledTimes(1);
+        expect(mockSender.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            text: 'Secret message',
+            type: 'message',
+            isTargeted: true,
+            recipient: { id: 'test-user', name: 'Test User', role: 'user' },
+          }),
+          mockRef
+        );
+      });
+
+      it('sends targeted message with explicit recipient id', async () => {
+        const activity = buildIncomingMessageActivity('Hello world');
+        context = buildActivityContext(activity);
+
+        const targetedActivity = new MessageActivity('Secret message')
+          .withTargetedRecipient('explicit-user-id');
+
+        await context.send(targetedActivity);
+
+        expect(mockSender.send).toHaveBeenCalledTimes(1);
+        expect(mockSender.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            text: 'Secret message',
+            type: 'message',
+            isTargeted: true,
+            recipient: { id: 'explicit-user-id', name: '', role: 'user' },
+          }),
+          mockRef
+        );
+      });
+
+      it('does not set recipient for targeted message updates', async () => {
+        const activity = buildIncomingMessageActivity('Hello world');
+        context = buildActivityContext(activity);
+
+        const updateActivity = new MessageActivity('Updated message')
+          .withTargetedRecipient(true)
+          .withId('existing-activity-id');
+
+        await context.send(updateActivity);
+
+        expect(mockSender.send).toHaveBeenCalledTimes(1);
+        const sentActivity = (mockSender.send as jest.Mock).mock.calls[0][0];
+        expect(sentActivity.id).toBe('existing-activity-id');
+        expect(sentActivity.isTargeted).toBe(true);
+        // Recipient should NOT be set for updates
+        expect(sentActivity.recipient).toBeUndefined();
+      });
+    });
   });
 
   describe('signin/signout flow', () => {

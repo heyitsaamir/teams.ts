@@ -74,6 +74,10 @@ export class ConversationClient {
         this._activities.reply(conversationId, id, params),
       delete: (id: string) => this._activities.delete(conversationId, id),
       members: (activityId: string) => this._activities.getMembers(conversationId, activityId),
+      createTargeted: (params: ActivityParams) => this._activities.createTargeted(conversationId, params),
+      updateTargeted: (id: string, params: ActivityParams) =>
+        this._activities.updateTargeted(conversationId, id, params),
+      deleteTargeted: (id: string) => this._activities.deleteTargeted(conversationId, id),
     };
   }
 
