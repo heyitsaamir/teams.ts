@@ -55,9 +55,9 @@ extends:
           fetchDepth: 0
 
         - task: NodeTool@0
-          displayName: 'Use Node 23.x'
+          displayName: 'Use Node 24.x'
           inputs:
-            versionSpec: '23.x'
+            versionSpec: '24.x'
             checkLatest: true
 
         - task: UseDotNet@2
