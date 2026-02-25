@@ -171,7 +171,6 @@ extends:
             waitforreleasecompletion: true
             serviceendpointurl: 'https://api.esrp.microsoft.com'
             owners: $(Release.Owners)
-            approvers: $(Release.Approvers)
             mainpublisher: 'ESRPRELPACMAN'
             domaintenantid: '975f013f-7f24-47e8-a7d3-abc4752bf346'
             productState: $(NpmTag)
