@@ -3044,8 +3044,9 @@ export class AdaptiveCard implements IAdaptiveCard {
   $schema?: string;
   /**
    * The Adaptive Card schema version the card is authored against.
+   * Defaults to `'1.5'`. The `version` field is required for Adaptive Cards to render on Teams mobile clients.
    */
-  version?: '1.0' | '1.1' | '1.2' | '1.3' | '1.4' | '1.5' | '1.6';
+  version: '1.0' | '1.1' | '1.2' | '1.3' | '1.4' | '1.5' | '1.6' = '1.5';
   /**
    * The text that should be displayed if the client is not able to render the card.
    */
