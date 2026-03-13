@@ -4,58 +4,43 @@ import cors from 'cors';
 import express from 'express';
 
 import {
-  Activity,
-  ActivityParams,
-  Client,
-  ConversationReference,
   Credentials,
   InvokeResponse,
   IToken
 } from '@microsoft/teams.api';
 
 import { ILogger } from '@microsoft/teams.common';
-import * as $http from '@microsoft/teams.common/http';
 
 import pkg from '../../../package.json';
-import { IActivityEvent, IErrorEvent } from '../../events';
+import { IActivityEvent, ICoreActivity, IErrorEvent } from '../../events';
 import { Manifest } from '../../manifest';
 import { JwtValidatedRequest, withJwtValidation } from '../../middleware/jwt-validation-middleware';
 import {
   Dependency,
   Event,
   IPluginStartEvent,
-  ISender,
-  IStreamer,
   Logger,
   Plugin,
 } from '../../types';
 
-
-import { HttpStream } from './stream';
-
 /**
- * Can send/receive activities via http
+ * Receives activities via HTTP
+ * Handles HTTP server setup, routing, and authentication
  */
 @Plugin({
   name: 'http',
   version: pkg.version,
-  description: 'the default plugin for sending/receiving activities',
+  description: 'the default plugin for receiving activities via HTTP',
 })
-export class HttpPlugin implements ISender {
+export class HttpPlugin {
   @Logger()
   readonly logger!: ILogger;
-
-  @Dependency()
-  readonly client!: $http.Client;
 
   @Dependency()
   readonly manifest!: Partial<Manifest>;
 
   @Dependency({ optional: true })
   readonly credentials?: Credentials;
-
-  @Dependency({ optional: true })
-  readonly botToken?: () => IToken;
 
   @Event('error')
   readonly $onError!: (event: IErrorEvent) => void;
@@ -97,8 +82,11 @@ export class HttpPlugin implements ISender {
     this.route = this.express.route.bind(this.express);
     this.use = this.express.use.bind(this.express);
 
+    // TODO: Setting cors globally and body parsing for all routes in /api
+    // is actually a mistake. When HttpPlugin is officially deprecated, this
+    // behavior will go away as well.
     this.express.use(cors());
-    this.express.use('/api*', express.json());
+    this.express.use('/api', express.json());
   }
 
   /**
@@ -112,6 +100,7 @@ export class HttpPlugin implements ISender {
   }
 
   onInit() {
+
     const messageHandlers = [this.onRequest.bind(this)];
     if (!this.skipAuth) {
       // Setup /api/messages route with JWT validation middleware
@@ -148,50 +137,8 @@ export class HttpPlugin implements ISender {
     this._server.close();
   }
 
-  async send(activity: ActivityParams, ref: ConversationReference) {
-    const api = new Client(
-      ref.serviceUrl,
-      this.client.clone({
-        token: this.botToken,
-      })
-    );
-
-    activity = {
-      ...activity,
-      from: ref.bot,
-      conversation: ref.conversation,
-    };
-
-    // Check if this is a targeted message
-    const isTargeted = 'isTargeted' in activity && activity.isTargeted === true;
-
-    if (activity.id) {
-      const res = isTargeted
-        ? await api.conversations.activities(ref.conversation.id).updateTargeted(activity.id, activity)
-        : await api.conversations.activities(ref.conversation.id).update(activity.id, activity);
-      return { ...activity, ...res };
-    }
-
-    const res = isTargeted
-      ? await api.conversations.activities(ref.conversation.id).createTargeted(activity)
-      : await api.conversations.activities(ref.conversation.id).create(activity);
-    return { ...activity, ...res };
-  }
-
-  createStream(ref: ConversationReference): IStreamer {
-    return new HttpStream(
-      new Client(
-        ref.serviceUrl,
-        this.client.clone({
-          token: this.botToken,
-        })
-      ),
-      ref,
-      this.logger
-    );
-  }
   /**
-   * validates an incoming http request
+   * handles an incoming http request
    * @param req the incoming http request
    * @param res the http response
    */
@@ -200,26 +147,32 @@ export class HttpPlugin implements ISender {
     res: express.Response,
     _next: express.NextFunction
   ) {
-    const activity: Activity = req.body;
-    let token: IToken | undefined;
-    if (req.validatedToken) {
-      token = req.validatedToken;
-    } else {
-      token = {
-        appId: '',
-        from: 'azure',
-        fromId: '',
-        serviceUrl: activity.serviceUrl || '',
-        isExpired: () => false,
-      };
+    try {
+      const body = req.body as ICoreActivity;
+      let token: IToken | undefined;
+      if (req.validatedToken) {
+        token = req.validatedToken;
+      } else {
+        token = {
+          appId: '',
+          from: 'azure',
+          fromId: '',
+          serviceUrl: body.serviceUrl || '',
+          isExpired: () => false,
+        };
+      }
+
+      const response = await this.$onActivity({
+        body,
+        token,
+      });
+
+      res.status(response.status || 200).send(response.body);
+    } catch (err) {
+      this.logger.error('Error processing activity:', err);
+      if (!res.headersSent) {
+        res.status(500).send({ error: 'Internal server error' });
+      }
     }
-
-    const response = await this.$onActivity({
-      sender: this,
-      activity,
-      token,
-    });
-
-    res.status(response.status || 200).send(response.body);
   }
 }

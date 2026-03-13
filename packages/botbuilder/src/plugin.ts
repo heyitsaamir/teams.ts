@@ -16,7 +16,6 @@ import {
   HttpPlugin,
   IActivityEvent,
   IErrorEvent,
-  ISender,
   Logger,
   Plugin,
   manifest,
@@ -38,7 +37,7 @@ export type BotBuilderPluginOptions = {
   name: 'http',
   version: pkg.version,
 })
-export class BotBuilderPlugin extends HttpPlugin implements ISender {
+export class BotBuilderPlugin extends HttpPlugin {
   @Logger()
   declare readonly logger: ILogger;
 
@@ -72,8 +71,8 @@ export class BotBuilderPlugin extends HttpPlugin implements ISender {
     this.handler = options?.handler;
   }
 
-  onInit() {
-    super.onInit();
+  async onInit() {
+    await super.onInit();
     if (!this.adapter) {
       const clientId = this.credentials?.clientId;
       const clientSecret =
@@ -133,9 +132,9 @@ export class BotBuilderPlugin extends HttpPlugin implements ISender {
         }
 
         const response = await this.$onActivity({
-          sender: this,
           token,
-          activity: new $Activity(context.activity as any) as Activity,
+          body:
+            new $Activity(context.activity as any) as Activity,
         });
 
         res.status(response.status || 200).send(response.body);
