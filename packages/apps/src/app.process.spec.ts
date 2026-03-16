@@ -2,11 +2,10 @@ import { IMessageActivity, InvokeResponse, ISignInFailureInvokeActivity, ITaskFe
 
 import { App } from './app';
 import { IActivityEvent } from './events/activity';
-import { TestHttpPlugin } from './plugins/http/plugin.spec';
+import { createTestApp } from './test-utils';
 
 describe('App', () => {
-  let senderPlugin: TestHttpPlugin;
-  let app: App<TestHttpPlugin>;
+  let app: App;
   const token: IToken = {
     appId: 'app-id',
     serviceUrl: 'https://service.url',
@@ -18,10 +17,7 @@ describe('App', () => {
   const activity: IMessageActivity = new MessageActivity();
 
   beforeEach(() => {
-    senderPlugin = new TestHttpPlugin();
-    app = new App({
-      plugins: [senderPlugin],
-    });
+    app = createTestApp();
     app.start();
   });
 

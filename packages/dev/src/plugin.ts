@@ -9,7 +9,6 @@ import { WebSocket, WebSocketServer } from 'ws';
 
 import { InvokeResponse, IToken } from '@microsoft/teams.api';
 import {
-  HttpPlugin,
   Logger,
   IPluginActivityEvent,
   IPluginActivityResponseEvent,
@@ -55,9 +54,6 @@ export class DevtoolsPlugin {
   @Dependency({ optional: true })
   readonly name?: IToken;
 
-  @Dependency()
-  readonly httpPlugin!: HttpPlugin;
-
   @Event('error')
   readonly $onError!: (event: IErrorEvent) => void;
 
@@ -78,7 +74,8 @@ export class DevtoolsPlugin {
     this.ws = new WebSocketServer({ server: this.http, path: '/devtools/sockets' });
     this.ws.on('connection', this.onSocketConnection.bind(this));
     this.express.use('/devtools', express.static(dist));
-    this.express.get('/devtools/*', (_, res) => {
+    // Catch-all route for SPA - must come after static middleware
+    this.express.get('/devtools/*splat', (_, res) => {
       res.sendFile(path.join(dist, 'index.html'));
     });
     this.options = options;

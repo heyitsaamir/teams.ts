@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { JsonWebToken } from '@microsoft/teams.api';
 
 import { App } from './app';
-import { TestHttpPlugin } from './plugins/http/plugin.spec';
+import { TestAdapter } from './test-utils';
 
 class TestApp extends App {
   // Expose protected members for testing
@@ -47,11 +47,15 @@ describe('App', () => {
 
     beforeEach(() => {
       app = new TestApp({
+        httpServerAdapter: new TestAdapter(),
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
         tenantId: 'test-tenant-id',
-        plugins: [new TestHttpPlugin()],
       });
+    });
+
+    afterEach(async () => {
+      await app.stop();
     });
 
     it('should acquire bot token via TokenManager', async () => {
@@ -88,7 +92,7 @@ describe('App', () => {
 
     it('should return null when credentials are not provided', async () => {
       const appWithoutCreds = new TestApp({
-        plugins: [new TestHttpPlugin()],
+        httpServerAdapter: new TestAdapter()
       });
 
       const botToken = await appWithoutCreds.testGetBotToken();
@@ -115,12 +119,16 @@ describe('App', () => {
   describe('send', () => {
     let app: TestApp;
 
+    afterEach(async () => {
+      await app.stop();
+    });
+
     it('should send message without manifest.name configured', async () => {
       app = new TestApp({
+        httpServerAdapter: new TestAdapter(),
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
         tenantId: 'test-tenant-id',
-        plugins: [new TestHttpPlugin()],
       });
 
       await app.start();
@@ -139,13 +147,13 @@ describe('App', () => {
 
     it('should send message with manifest.name configured', async () => {
       app = new TestApp({
+        httpServerAdapter: new TestAdapter(),
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
         tenantId: 'test-tenant-id',
         manifest: {
           name: { short: 'TestBot', full: 'Test Bot Application' },
         },
-        plugins: [new TestHttpPlugin()],
       });
 
       await app.start();
@@ -164,7 +172,7 @@ describe('App', () => {
 
     it('should throw error when app is not started (no clientId)', async () => {
       app = new TestApp({
-        plugins: [new TestHttpPlugin()],
+        httpServerAdapter: new TestAdapter()
       });
 
       await app.start();
@@ -183,7 +191,7 @@ describe('App', () => {
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
         tenantId: 'test-tenant-id',
-        plugins: [new TestHttpPlugin()],
+        httpServerAdapter: new TestAdapter(),
       });
 
       // Only initialize - no start(), no HTTP server
@@ -206,7 +214,7 @@ describe('App', () => {
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
         tenantId: 'test-tenant-id',
-        plugins: [new TestHttpPlugin()],
+        httpServerAdapter: new TestAdapter(),
       });
 
       await app.initialize();
@@ -227,7 +235,7 @@ describe('App', () => {
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
         tenantId: 'test-tenant-id',
-        plugins: [new TestHttpPlugin()],
+        httpServerAdapter: new TestAdapter(),
       });
 
       await app.initialize();
@@ -258,7 +266,7 @@ describe('App', () => {
       const app = new App({
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
-        plugins: [new TestHttpPlugin()],
+        httpServerAdapter: new TestAdapter(),
       });
 
       expect(app.api.serviceUrl).toBe('https://smba.trafficmanager.net/teams');
@@ -270,7 +278,7 @@ describe('App', () => {
       const app = new App({
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
-        plugins: [new TestHttpPlugin()],
+        httpServerAdapter: new TestAdapter(),
       });
 
       expect(app.api.serviceUrl).toBe('https://custom.service.url/teams');
@@ -283,7 +291,7 @@ describe('App', () => {
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
         serviceUrl: 'https://options.service.url/teams',
-        plugins: [new TestHttpPlugin()],
+        httpServerAdapter: new TestAdapter(),
       });
 
       expect(app.api.serviceUrl).toBe('https://options.service.url/teams');
@@ -295,7 +303,7 @@ describe('App', () => {
       const app1 = new App({
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
-        plugins: [new TestHttpPlugin()],
+        httpServerAdapter: new TestAdapter(),
       });
       expect(app1.api.serviceUrl).toBe('https://smba.trafficmanager.net/teams');
 
@@ -303,7 +311,7 @@ describe('App', () => {
       const app2 = new App({
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
-        plugins: [new TestHttpPlugin()],
+        httpServerAdapter: new TestAdapter(),
       });
       expect(app2.api.serviceUrl).toBe('https://env.service.url/teams');
 
@@ -311,7 +319,7 @@ describe('App', () => {
         clientId: 'test-client-id',
         clientSecret: 'test-client-secret',
         serviceUrl: 'https://options.service.url/teams',
-        plugins: [new TestHttpPlugin()],
+        httpServerAdapter: new TestAdapter(),
       });
       expect(app3.api.serviceUrl).toBe('https://options.service.url/teams');
     });

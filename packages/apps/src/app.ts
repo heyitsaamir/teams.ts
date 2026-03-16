@@ -37,6 +37,8 @@ import { $process } from './app.process';
 import { message, on, use } from './app.routing';
 import { Container } from './container';
 import { IActivityEvent } from './events';
+import { ExpressAdapter, IHttpServerAdapter } from './http';
+import { HttpServer } from './http/http-server';
 import * as manifest from './manifest';
 import * as middleware from './middleware';
 import { DEFAULT_OAUTH_SETTINGS, OAuthSettings } from './oauth';
@@ -115,6 +117,11 @@ export type AppOptions<TPlugin extends IPlugin> = {
   readonly plugins?: Array<TPlugin>;
 
   /**
+   * HTTP server adapter for handling bot requests
+   */
+  readonly httpServerAdapter?: IHttpServerAdapter;
+
+  /**
    * OAuth Settings
    */
   readonly oauth?: OAuthSettings;
@@ -164,7 +171,8 @@ export class App<TPlugin extends IPlugin = IPlugin> {
   readonly api: ApiClient;
   readonly graph: GraphClient;
   readonly log: ILogger;
-  readonly http: HttpPlugin;
+  readonly server: HttpServer;
+  readonly http?: HttpPlugin;
   readonly client: http.Client;
   readonly storage: IStorage;
   readonly entraTokenValidator?: middleware.JwtValidator;
@@ -304,23 +312,50 @@ export class App<TPlugin extends IPlugin = IPlugin> {
       );
     }
 
-    // add/validate plugins
+    // Determine HTTP server
     const plugins: Array<TPlugin> = this.options.plugins || [];
-    let httpPlugin = plugins.find((p) => {
+    const httpPlugin = plugins.find((p) => {
       const meta = getMetadata(p);
       return meta.name === 'http';
     }) as HttpPlugin | undefined;
 
-    if (!httpPlugin) {
-      httpPlugin = new HttpPlugin(undefined, { skipAuth: this.options.skipAuth });
-      // Casting to any here because a default HttpPlugin is not assignable to TPlugin
-      // without a silly level of indirection.
-      plugins.unshift(httpPlugin as any);
-    } else if (this.options.skipAuth) {
-      this.log.warn('skipAuth option has no effect when a custom HTTP plugin is provided. Configure authentication on the plugin directly.');
+    // Error if both httpServerAdapter and http plugin are provided
+    if (this.options.httpServerAdapter && httpPlugin) {
+      throw new Error(
+        'Cannot provide both httpServerAdapter option and HttpPlugin in plugins array. ' +
+        'Use either:\n' +
+        '  - new App({ httpServerAdapter: new ExpressAdapter() }) (recommended)\n' +
+        '  - new App({ plugins: [new HttpPlugin()] }) (deprecated)'
+      );
     }
 
-    this.http = httpPlugin;
+    let server: HttpServer;
+
+    // HttpPlugin in plugins array (backwards compatibility)
+    if (httpPlugin) {
+      this.log.warn('[DEPRECATED] HttpPlugin in plugins array will be deprecated. Use httpServerAdapter option instead:\n' +
+        '  new App({ httpServerAdapter: new ExpressAdapter() })');
+      this.http = httpPlugin;
+      // Extract internal server and always set this.server
+      server = (httpPlugin as any).asServer?.();
+      if (!server) {
+        throw new Error('HttpPlugin.asServer() returned undefined');
+      }
+    } else {
+      server = new HttpServer(this.options.httpServerAdapter ?? new ExpressAdapter(undefined, {
+        logger: this.log,
+        onError: (err) => this.onError({ error: err })
+      }), {
+        skipAuth: this.options.skipAuth,
+        logger: this.log
+      });
+    }
+
+    // Always set this.server
+    this.server = server;
+
+    // Set callback for handling activities
+    server.onRequest = (event) => this.onActivity(event);
 
     // add injectable items to container
     this.container.register('id', { useValue: this.id });
@@ -334,6 +369,10 @@ export class App<TPlugin extends IPlugin = IPlugin> {
       useFactory: () => this.client,
     });
 
+    // Register HTTP server for plugins that need HTTP capabilities
+    this.container.register('IHttpServer', { useValue: server });
+
+    // Register all plugins (including HttpPlugin if using old way)
     for (const plugin of plugins) {
       this.plugin(plugin);
     }
@@ -389,13 +428,17 @@ export class App<TPlugin extends IPlugin = IPlugin> {
 
     // initialize plugins
     for (const plugin of this.plugins) {
-      // inject dependencies
       this.inject(plugin);
 
       if (plugin.onInit) {
         await plugin.onInit();
       }
     }
+
+    // initialize server
+    await this.server.initialize({
+      credentials: this.credentials,
+    });
 
     this.isInitialized = true;
   }
@@ -410,14 +453,18 @@ export class App<TPlugin extends IPlugin = IPlugin> {
     try {
       await this.initialize();
 
-      // start plugins
+      // Start plugins
       for (const plugin of this.plugins) {
         if (plugin.onStart) {
           await plugin.onStart({ port: this.port });
         }
       }
       this.events.emit('start', this.log);
+
+      // Start HTTP server
+      await this.server.start(this.port);
     } catch (error: any) {
+      await this.stop();
       this.onError({ error });
     }
   }
@@ -427,11 +474,15 @@ export class App<TPlugin extends IPlugin = IPlugin> {
    */
   async stop() {
     try {
+      // Stop plugins
       for (const plugin of this.plugins) {
         if (plugin.onStop) {
           await plugin.onStop();
         }
       }
+
+      // Stop HTTP server
+      await this.server.stop();
     } catch (error: any) {
       this.onError({ error });
     }
