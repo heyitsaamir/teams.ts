@@ -9,6 +9,7 @@ import {
   Importance,
   InputHint,
   MentionEntity,
+  QuotedReplyEntity,
   SuggestedActions,
   TextFormat,
 } from '../../models';
@@ -95,6 +96,11 @@ export interface IMessageActivity extends IActivity<'message'> {
    * get a mention by the account id if exists
    */
   getAccountMention(accountId: string): MentionEntity | undefined;
+
+  /**
+   * get all quoted reply entities from this message
+   */
+  getQuotedMessages(): QuotedReplyEntity[];
 }
 
 export class MessageActivity extends Activity<'message'> implements IMessageActivity {
@@ -188,6 +194,7 @@ export class MessageActivity extends Activity<'message'> implements IMessageActi
         stripMentionsText: this.stripMentionsText.bind(this),
         isRecipientMentioned: this.isRecipientMentioned.bind(this),
         getAccountMention: this.getAccountMention.bind(this),
+        getQuotedMessages: this.getQuotedMessages.bind(this),
       },
       this
     );
@@ -362,6 +369,15 @@ export class MessageActivity extends Activity<'message'> implements IMessageActi
   }
 
   /**
+   * get all quoted reply entities from this message
+   */
+  getQuotedMessages(): QuotedReplyEntity[] {
+    return (this.entities ?? []).filter(
+      (e): e is QuotedReplyEntity => e.type === 'quotedReply'
+    );
+  }
+
+  /**
    * Add stream info, making
    * this a final stream message
    */
@@ -392,6 +408,29 @@ export class MessageActivity extends Activity<'message'> implements IMessageActi
    */
   withRecipient(account: Account, isTargeted: boolean = false): this {
     super.withRecipient(account, isTargeted);
+    return this;
+  }
+
+  /**
+   * Add a quotedReply entity for the given message ID and append a
+   * `<quoted messageId="..."/>` placeholder to text.
+   * If response is provided, it is appended after the placeholder.
+   * @param messageId - The IC3 message ID of the message to quote
+   * @param response - Optional response text to append after the placeholder
+   * @returns this instance for chaining
+   */
+  addQuotedReply(messageId: string, response?: string): this {
+    if (!this.entities) {
+      this.entities = [];
+    }
+    this.entities.push({
+      type: 'quotedReply',
+      quotedReply: { messageId },
+    });
+    this.addText(`<quoted messageId="${messageId}"/>`);
+    if (response) {
+      this.addText(` ${response}`);
+    }
     return this;
   }
 }
