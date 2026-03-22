@@ -42,5 +42,20 @@ yarn-error.log*
 *.zip
 *.rdb
 
+# E2E test state
+e2e-test/browser-state.json
+e2e-test/.env
+
+# Playwright CLI artifacts (snapshots, console logs)
+.playwright-cli/
+.playwright/
+
+# Claude Code (skills, plans, transcripts)
+.claude/
+
+# E2E learnings (local, accumulated per-machine)
+examples/.e2e-learnings.md
+examples/*/.e2e-learnings.md
+
 # Cursor
 .specstory
