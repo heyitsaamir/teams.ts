@@ -5,18 +5,32 @@ import {
   MessageActivity,
   SentActivity,
 } from '@microsoft/teams.api';
+import { IFeedbackProvider, SentMessageData, FeedbackScore } from '@microsoft/teams.apps';
+import { ConsoleLogger } from '@microsoft/teams.common';
 
-// This store would ideally be persisted in a database
-export const storedFeedbackByMessageId = new Map<
-  string,
-  {
-    incomingMessage: string;
-    outgoingMessage: string;
-    likes: number;
-    dislikes: number;
-    feedbacks: string[];
+/**
+ * Simple in-memory feedback provider for demo purposes.
+ * In production, use a provider for LangSmith, LangFuse, Braintrust, or Azure AI Foundry.
+ */
+export class InMemoryFeedbackProvider implements IFeedbackProvider {
+  readonly messages = new Map<string, SentMessageData>();
+  readonly feedback = new Map<string, FeedbackScore[]>();
+  private readonly log = new ConsoleLogger('@tests/ai/feedback-provider');
+
+  async logSentMessage(data: SentMessageData): Promise<void> {
+    this.messages.set(data.messageId, data);
+    this.log.info(`Message logged for ${data.messageId}: input=${data.input}, output=${data.output}`);
   }
->();
+
+  async logFeedback(messageId: string, score: FeedbackScore): Promise<void> {
+    const existing = this.feedback.get(messageId) ?? [];
+    existing.push(score);
+    this.feedback.set(messageId, existing);
+    this.log.info(`Feedback logged for ${messageId}: ${score.reaction}`);
+  }
+}
+
+export const feedbackProvider = new InMemoryFeedbackProvider();
 
 export const handleFeedbackLoop = async (
   model: IChatModel,
@@ -31,7 +45,7 @@ export const handleFeedbackLoop = async (
   const result = await prompt.send(activity.text);
 
   if (result) {
-    const { id: sentMessageId } = await send(
+    await send(
       result.content != null
         ? new MessageActivity(result.content)
             .addAiGenerated()
@@ -39,14 +53,5 @@ export const handleFeedbackLoop = async (
             .addFeedback()
         : 'I did not generate a response.'
     );
-
-    storedFeedbackByMessageId.set(sentMessageId, {
-      incomingMessage: activity.text,
-      outgoingMessage: result.content ?? '',
-      likes: 0,
-      dislikes: 0,
-      feedbacks: [],
-    });
-
   }
 };

@@ -1,6 +1,6 @@
 import { ChatPrompt } from '@microsoft/teams.ai';
 import { MessageActivity } from '@microsoft/teams.api';
-import { App } from '@microsoft/teams.apps';
+import { App, FeedbackPlugin } from '@microsoft/teams.apps';
 import { ConsoleLogger } from '@microsoft/teams.common';
 import { DevtoolsPlugin } from '@microsoft/teams.dev';
 import { OpenAIChatModel } from '@microsoft/teams.openai';
@@ -13,7 +13,7 @@ import {
   structuredOutputCommand,
   weatherCommand,
 } from './commands';
-import { storedFeedbackByMessageId } from './feedback';
+import { feedbackProvider } from './feedback';
 import { handleDocumentationSearch } from './simple-rag';
 import { handleStatefulConversation } from './stateful-prompts';
 
@@ -21,7 +21,7 @@ const logger = new ConsoleLogger('@tests/ai');
 
 const app = new App({
   logger,
-  plugins: [new DevtoolsPlugin()],
+  plugins: [new DevtoolsPlugin(), new FeedbackPlugin({ provider: feedbackProvider })],
 });
 
 const model = new OpenAIChatModel({
@@ -142,29 +142,6 @@ app.on('message', async ({ stream, send, activity, next, log }) => {
 // Fall through conversation handler
 app.on('message', async ({ send, activity, log }) => {
   await handleStatefulConversation(model, activity, send, log);
-});
-
-app.on('message.submit.feedback', async ({ activity, log }) => {
-  const { reaction, feedback: feedbackJson } = activity.value.actionValue;
-  if (activity.replyToId == null) {
-    log.warn(`No replyToId found for messageId ${activity.id}`);
-    return;
-  }
-  const existingFeedback = storedFeedbackByMessageId.get(activity.replyToId);
-  /**
-   * feedbackJson looks like:
-   * {"feedbackText":"Nice!"}
-   */
-  if (!existingFeedback) {
-    log.warn(`No feedback found for messageId ${activity.id}`);
-  } else {
-    storedFeedbackByMessageId.set(activity.id, {
-      ...existingFeedback,
-      likes: existingFeedback.likes + (reaction === 'like' ? 1 : 0),
-      dislikes: existingFeedback.dislikes + (reaction === 'dislike' ? 1 : 0),
-      feedbacks: [...existingFeedback.feedbacks, feedbackJson],
-    });
-  }
 });
 
 app.start(process.env.PORT || 3978).catch(console.error);
