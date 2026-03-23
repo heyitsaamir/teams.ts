@@ -6,9 +6,11 @@ const app = new App({
   logger: new ConsoleLogger('@examples/reactions', { level: 'debug' })
 });
 
-// Store the service URL and conversation reference to use with ReactionClient
-
 type ReactionParameter = Parameters<Client['reactions']['add']>[2];
+
+// Cache the last reacted message so "remove" can target it
+let lastReactedActivityId: string | undefined;
+let lastReactedConversationId: string | undefined;
 
 // Handle incoming messages
 app.on('message', async ({ reply, activity, log, api }) => {
@@ -39,6 +41,8 @@ app.on('message', async ({ reply, activity, log, api }) => {
         activity.id,
         reactionType
       );
+      lastReactedActivityId = activity.id;
+      lastReactedConversationId = activity.conversation.id;
       await reply(`Added a ${reactionType} reaction to your message!`);
       log.info(`Added ${reactionType} reaction to message ${activity.id}`);
     } catch (error) {
@@ -52,13 +56,17 @@ app.on('message', async ({ reply, activity, log, api }) => {
   const removeMatch = userMessage.match(/remove\s+(\S+)/);
   if (removeMatch && api) {
     const reactionType = removeMatch[1] as ReactionParameter;
+    if (!lastReactedActivityId || !lastReactedConversationId) {
+      await reply('No previous reaction to remove. Try "add like" first!');
+      return;
+    }
     try {
       await api.reactions.remove(
-        activity.conversation.id,
-        activity.id,
+        lastReactedConversationId,
+        lastReactedActivityId,
         reactionType
       );
-      await reply(`Removed the ${reactionType} reaction from your message!`);
+      await reply(`Removed the ${reactionType} reaction from the last reacted message!`);
       log.info(`Removed ${reactionType} reaction from message ${activity.id}`);
     } catch (error) {
       log.error('Failed to remove reaction:', error);
