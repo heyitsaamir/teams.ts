@@ -1,1 +1,1 @@
-module.exports = require("@microsoft/teams.config/jest.config.cjs");
+module.exports = require('@microsoft/teams.config/jest.config.cjs');

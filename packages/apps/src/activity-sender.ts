@@ -10,12 +10,12 @@ import { IStreamer, IActivitySender } from './types';
  * Separate from transport concerns (HTTP, WebSocket, etc.)
  */
 export class ActivitySender implements IActivitySender {
-  constructor(
+  constructor (
     private client: $http.Client,
     private logger: ILogger
   ) { }
 
-  async send(activity: ActivityParams, ref: ConversationReference): Promise<SentActivity> {
+  async send (activity: ActivityParams, ref: ConversationReference): Promise<SentActivity> {
     // Create API client for this conversation's service URL
     const api = new Client(ref.serviceUrl, this.client);
 
@@ -43,7 +43,7 @@ export class ActivitySender implements IActivitySender {
     return { ...activity, ...res };
   }
 
-  createStream(ref: ConversationReference): IStreamer {
+  createStream (ref: ConversationReference): IStreamer {
     // Create API client for this conversation's service URL
     const api = new Client(ref.serviceUrl, this.client);
     return new HttpStream(api, ref, this.logger);

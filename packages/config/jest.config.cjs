@@ -5,7 +5,7 @@ const path = require('path');
 // This is needed because the workspace packages produce ESM-only output,
 // and Jest (running in CJS mode) cannot require ESM modules directly.
 // By mapping to source, ts-jest compiles everything in-process.
-function buildModuleNameMapper() {
+function buildModuleNameMapper () {
   const root = path.resolve(__dirname, '../..');
   const map = {};
   for (const parent of ['packages', 'external']) {

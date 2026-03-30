@@ -21,14 +21,14 @@ export class HonoAdapter implements IHttpServerAdapter {
    * Create adapter with your existing Hono app
    * @param hono Your Hono app with your custom routes
    */
-  constructor(hono: Hono) {
+  constructor (hono: Hono) {
     this.hono = hono;
   }
 
   /**
    * Register a route handler for a given HTTP method and path
    */
-  registerRoute(method: HttpMethod, path: string, handler: HttpRouteHandler): void {
+  registerRoute (method: HttpMethod, path: string, handler: HttpRouteHandler): void {
     const m = method.toLowerCase() as Lowercase<HttpMethod>;
     this.hono[m](path, async (c: Context) => {
       const body = await c.req.json().catch(() => ({}));
@@ -43,7 +43,7 @@ export class HonoAdapter implements IHttpServerAdapter {
    * Note: For production, consider using Hono's built-in static middleware
    * or a CDN for better performance
    */
-  serveStatic(path: string, directory: string): void {
+  serveStatic (path: string, directory: string): void {
     // Hono's static file serving
     this.hono.get(`${path}/*`, async (c) => {
       const filePath = c.req.path.replace(path, directory);

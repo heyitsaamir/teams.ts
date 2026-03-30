@@ -56,18 +56,18 @@ export class HttpServer implements IHttpServer {
    * Get the underlying adapter
    * Useful for plugins that need adapter-specific features
    */
-  get adapter(): IHttpServerAdapter {
+  get adapter (): IHttpServerAdapter {
     return this._adapter;
   }
 
   /**
    * Get the messaging endpoint path
    */
-  get messagingEndpoint(): string {
+  get messagingEndpoint (): string {
     return this._messagingEndpoint;
   }
 
-  constructor(adapter: IHttpServerAdapter, options: HttpServerOptions) {
+  constructor (adapter: IHttpServerAdapter, options: HttpServerOptions) {
     this._adapter = adapter;
     this.skipAuth = options.skipAuth ?? false;
     this.logger = options.logger ?? new ConsoleLogger('HttpServer');
@@ -79,7 +79,7 @@ export class HttpServer implements IHttpServer {
    * Can be called multiple times - only initializes once
    * Called by App.initialize()
    */
-  async initialize(deps: {
+  async initialize (deps: {
     credentials?: Credentials;
   }) {
     if (this.initialized) {
@@ -111,7 +111,7 @@ export class HttpServer implements IHttpServer {
    * Start the HTTP server
    * Called by App.start()
    */
-  async start(port: number | string) {
+  async start (port: number | string) {
     if (!this._adapter.start) {
       throw new Error(
         'Adapter does not implement start(). ' +
@@ -125,7 +125,7 @@ export class HttpServer implements IHttpServer {
    * Stop the HTTP server
    * Called by App.stop() if implemented
    */
-  async stop() {
+  async stop () {
     if (!this._adapter.stop) {
       this.logger.warn('Adapter does not implement stop(). Skipping server shutdown.');
       return;
@@ -137,7 +137,7 @@ export class HttpServer implements IHttpServer {
    * Register a route handler with the adapter
    * Used by app.function() and other app methods
    */
-  registerRoute(method: HttpMethod, path: string, handler: HttpRouteHandler) {
+  registerRoute (method: HttpMethod, path: string, handler: HttpRouteHandler) {
     this._adapter.registerRoute(method, path, handler);
   }
 
@@ -145,7 +145,7 @@ export class HttpServer implements IHttpServer {
    * Serve static files from a directory
    * Used by app.tab() and other app methods
    */
-  serveStatic(path: string, directory: string) {
+  serveStatic (path: string, directory: string) {
     if (this._adapter.serveStatic) {
       this._adapter.serveStatic(path, directory);
     }
@@ -155,7 +155,7 @@ export class HttpServer implements IHttpServer {
    * Handle incoming activity request
    * Validates JWT, dispatches to app, returns response
    */
-  async handleRequest(request: IHttpServerRequest): Promise<IHttpServerResponse> {
+  async handleRequest (request: IHttpServerRequest): Promise<IHttpServerResponse> {
     try {
       const body = request.body as ICoreActivity;
       this.logger.debug('Handling activity', body);
@@ -180,7 +180,7 @@ export class HttpServer implements IHttpServer {
   /**
    * Authorize the request by validating the JWT token.
    */
-  protected async authorize(
+  protected async authorize (
     headers: Record<string, string | string[]>,
     body: ICoreActivity
   ): Promise<AuthResult> {
@@ -215,5 +215,4 @@ export class HttpServer implements IHttpServer {
       return { success: false, error: 'JWT validation failed' };
     }
   }
-
 }

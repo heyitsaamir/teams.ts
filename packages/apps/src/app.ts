@@ -187,14 +187,14 @@ export class App<TPlugin extends IPlugin = IPlugin> {
   /**
    * the apps credentials
    */
-  get credentials() {
+  get credentials () {
     return this.tokenManager.credentials;
   }
 
   /**
    * the apps id
    */
-  get id() {
+  get id () {
     return this.credentials?.clientId;
   }
 
@@ -202,11 +202,11 @@ export class App<TPlugin extends IPlugin = IPlugin> {
    * the apps name
    * @deprecated Name will be removed in the near future. Please remove dependencies from it.
    */
-  get name() {
+  get name () {
     return this._manifest.name?.full;
   }
 
-  get oauth() {
+  get oauth () {
     return {
       ...DEFAULT_OAUTH_SETTINGS,
       ...this.options.oauth,
@@ -216,7 +216,7 @@ export class App<TPlugin extends IPlugin = IPlugin> {
   /**
    * the apps manifest
    */
-  get manifest(): Partial<manifest.Manifest> {
+  get manifest (): Partial<manifest.Manifest> {
     return {
       id: this.id,
       name: {
@@ -238,6 +238,7 @@ export class App<TPlugin extends IPlugin = IPlugin> {
       ...this._manifest,
     };
   }
+
   protected readonly _manifest: Partial<manifest.Manifest>;
 
   protected container = new Container();
@@ -251,7 +252,7 @@ export class App<TPlugin extends IPlugin = IPlugin> {
 
   private readonly _userAgent = `teams.ts[apps]/${pkg.version}`;
 
-  constructor(readonly options: AppOptions<TPlugin> = {}) {
+  constructor (readonly options: AppOptions<TPlugin> = {}) {
     this.log = this.options.logger || new ConsoleLogger('@teams/app');
     this.storage = this.options.storage || new LocalStorage();
     this._manifest = this.options.manifest || {};
@@ -428,7 +429,7 @@ export class App<TPlugin extends IPlugin = IPlugin> {
   /**
    * initialize the app.
    */
-  async initialize() {
+  async initialize () {
     if (this.isInitialized) {
       return;
     }
@@ -454,7 +455,7 @@ export class App<TPlugin extends IPlugin = IPlugin> {
    * start the server after initialization
    * @param port port to listen on
    */
-  async start(port?: number | string) {
+  async start (port?: number | string) {
     this.port = port || process.env.PORT || 3978;
 
     try {
@@ -479,7 +480,7 @@ export class App<TPlugin extends IPlugin = IPlugin> {
   /**
    * stop the app
    */
-  async stop() {
+  async stop () {
     try {
       // Stop plugins
       for (const plugin of this.plugins) {
@@ -500,7 +501,7 @@ export class App<TPlugin extends IPlugin = IPlugin> {
    * @param conversationId the conversation to send to
    * @param activity the activity to send
    */
-  async send(conversationId: string, activity: ActivityLike) {
+  async send (conversationId: string, activity: ActivityLike) {
     if (!this.id) {
       throw new Error('app not started');
     }
@@ -530,45 +531,45 @@ export class App<TPlugin extends IPlugin = IPlugin> {
    * @param name event to subscribe to
    * @param cb callback to invoke
    */
-  on = on; // eslint-disable-line @typescript-eslint/member-ordering
+  on = on;
 
   /**
    * subscribe to a message event for a specific pattern
    * @param pattern pattern to match against message text
    * @param cb callback to invoke
    */
-  message = message; // eslint-disable-line @typescript-eslint/member-ordering
+  message = message;
 
   /**
    * register a middleware
    * @param cb callback to invoke
    */
-  use = use; // eslint-disable-line @typescript-eslint/member-ordering
+  use = use;
 
   /**
    * subscribe to an event
    * @param name the event to subscribe to
    * @param cb the callback to invoke
    */
-  event = event; // eslint-disable-line @typescript-eslint/member-ordering
+  event = event;
 
   /**
    * add a plugin
    * @param plugin plugin to add
    */
-  plugin = plugin; // eslint-disable-line @typescript-eslint/member-ordering
+  plugin = plugin;
 
   /**
    * get a plugin
    */
-  getPlugin = getPlugin; // eslint-disable-line @typescript-eslint/member-ordering
+  getPlugin = getPlugin;
 
   /**
    * add/update a function that can be called remotely
    * @param name The unique function name
    * @param cb The callback to handle the function
    */
-  function = func; // eslint-disable-line @typescript-eslint/member-ordering
+  function = func;
 
   /**
    * add/update a static tab.
@@ -578,40 +579,40 @@ export class App<TPlugin extends IPlugin = IPlugin> {
    * @param name A unique identifier for the entity which the tab displays.
    * @param path The path to the web `dist` folder.
    */
-  tab = tab; // eslint-disable-line @typescript-eslint/member-ordering
+  tab = tab;
 
   /**
    * add a configurable tab
    * @remark scopes defaults to `team`
    * @param url The url to use when configuring the tab.
    */
-  configTab = configTab; // eslint-disable-line @typescript-eslint/member-ordering
+  configTab = configTab;
 
   /**
    * activity handler called when an inbound activity is received
    * @param sender the plugin to use for sending activities
    * @param event the received activity event
    */
-  process = $process; // eslint-disable-line @typescript-eslint/member-ordering
+  process = $process;
 
   ///
   /// OAuth
   ///
 
-  protected onTokenExchange = onTokenExchange; // eslint-disable-line @typescript-eslint/member-ordering
-  protected onVerifyState = onVerifyState; // eslint-disable-line @typescript-eslint/member-ordering
-  protected onSignInFailure = onSignInFailure; // eslint-disable-line @typescript-eslint/member-ordering
+  protected onTokenExchange = onTokenExchange;
+  protected onVerifyState = onVerifyState;
+  protected onSignInFailure = onSignInFailure;
 
   ///
   /// Events
   ///
 
-  protected inject = inject; // eslint-disable-line @typescript-eslint/member-ordering
-  protected onError = onError; // eslint-disable-line @typescript-eslint/member-ordering
-  protected onActivitySent = onActivitySent; // eslint-disable-line @typescript-eslint/member-ordering
-  protected onActivityResponse = onActivityResponse; // eslint-disable-line @typescript-eslint/member-ordering
+  protected inject = inject;
+  protected onError = onError;
+  protected onActivitySent = onActivitySent;
+  protected onActivityResponse = onActivityResponse;
 
-  async onActivity(
+  async onActivity (
     event: IActivityEvent
   ): Promise<InvokeResponse> {
     this.events.emit('activity', event);
@@ -622,12 +623,12 @@ export class App<TPlugin extends IPlugin = IPlugin> {
   /// Token
   ///
 
-  protected async getBotToken() {
+  protected async getBotToken () {
     if (!this.tokenManager) return;
     return await this.tokenManager.getBotToken();
   }
 
-  protected async getUserToken(
+  protected async getUserToken (
     channelId: ChannelID,
     userId: string
   ) {
@@ -640,7 +641,7 @@ export class App<TPlugin extends IPlugin = IPlugin> {
     return res.token;
   }
 
-  protected async getAppGraphToken(tenantId?: string) {
+  protected async getAppGraphToken (tenantId?: string) {
     if (!this.tokenManager) return;
     return await this.tokenManager.getGraphToken(tenantId);
   }

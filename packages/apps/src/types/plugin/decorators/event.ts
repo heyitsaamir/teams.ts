@@ -18,7 +18,7 @@ export type EventMetadata = {
  * add an event emitter to your plugin
  * via `@Event(...)`
  */
-export function Event(name: PluginEventName) {
+export function Event (name: PluginEventName) {
   return (target: any, propertyKey: string | ClassFieldDecoratorContext) => {
     if (typeof propertyKey === 'string') {
       const TargetType = target.constructor;

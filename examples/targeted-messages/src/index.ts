@@ -10,7 +10,7 @@ const app = new App({
 
 app.on('message', async ({ send, reply, activity, api }) => {
   await reply({ type: 'typing' });
-  
+
   const text = activity.text?.toLowerCase() || '';
 
   // ============================================

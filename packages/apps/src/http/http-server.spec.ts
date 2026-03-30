@@ -6,20 +6,20 @@ class MockAdapter implements IHttpServerAdapter {
   started = false;
   stopped = false;
 
-  registerRoute(method: HttpMethod, path: string, handler: HttpRouteHandler): void {
+  registerRoute (method: HttpMethod, path: string, handler: HttpRouteHandler): void {
     this.routes.push({ method, path, handler });
   }
 
-  async start(_port: number | string): Promise<void> {
+  async start (_port: number | string): Promise<void> {
     this.started = true;
   }
 
-  async stop(): Promise<void> {
+  async stop (): Promise<void> {
     this.stopped = true;
   }
 
   /** Simulate a request to a registered route */
-  async simulateRequest(path: string, body: unknown, headers: Record<string, string | string[]> = {}) {
+  async simulateRequest (path: string, body: unknown, headers: Record<string, string | string[]> = {}) {
     const route = this.routes.find(r => r.path === path);
     if (!route) throw new Error(`No route registered for ${path}`);
     return route.handler({ body, headers });

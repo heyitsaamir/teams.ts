@@ -37,7 +37,7 @@ const extractCommandAndQueryForCommand =
         return null;
       }
       if (command === commandStr) {
-        return { commandName: commandName, query: parts.slice(1).join(' '), handler };
+        return { commandName, query: parts.slice(1).join(' '), handler };
       }
       return null;
     };

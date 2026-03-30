@@ -57,12 +57,12 @@ export class BotBuilderPlugin implements IPlugin {
   protected cloudAdapter?: CloudAdapter;
   protected handler?: ActivityHandler;
 
-  constructor(options?: BotBuilderPluginOptions) {
+  constructor (options?: BotBuilderPluginOptions) {
     this.cloudAdapter = options?.adapter;
     this.handler = options?.handler;
   }
 
-  async onInit() {
+  async onInit () {
     const adapter = this.httpServer.adapter;
     if (!(adapter instanceof ExpressAdapter)) {
       throw new Error(
@@ -103,7 +103,7 @@ export class BotBuilderPlugin implements IPlugin {
     );
   }
 
-  protected async onRequest(
+  protected async onRequest (
     req: express.Request,
     res: express.Response,
     next: express.NextFunction
