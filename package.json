@@ -41,7 +41,7 @@
     "eslint": "^9.25.1",
     "neostandard": "^0.13.0",
     "nerdbank-gitversioning": "^3.9.50",
-    "typescript": "^5.8.0"
+    "typescript": "^6.0.2"
   },
   "overrides": {
     "restify": {
