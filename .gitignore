@@ -27,6 +27,7 @@ coverage
 out/
 build
 dist
+*.tsbuildinfo
 bin
 obj
 
@@ -44,5 +45,3 @@ yarn-error.log*
 
 # Cursor
 .specstory
-
-*/tsconfig.tsbuildinfo
