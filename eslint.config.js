@@ -8,7 +8,7 @@ export default [
       '**/coverage/**',
       '**/node_modules/**',
       'packages/cli/templates/**',
-      'packages/cards/src/**',
+      'packages/xxcards/src/**',
       'packages/graph*/src/**',
     ]
   },
