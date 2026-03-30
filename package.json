@@ -33,6 +33,7 @@
     "version:get": "nbgv get-version -v NpmPackageVersion",
     "clean": "npm run clean --workspaces --if-present",
     "build": "tsc --build",
+    "build:endpoints": "tsc --build packages/graph-endpoints packages/graph-endpoints-beta",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "test": "npm test --workspaces --if-present"

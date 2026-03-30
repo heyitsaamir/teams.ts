@@ -7,8 +7,6 @@
     { "path": "packages/ai" },
     { "path": "packages/api" },
     { "path": "packages/graph" },
-    { "path": "packages/graph-endpoints" },
-    { "path": "packages/graph-endpoints-beta" },
     { "path": "packages/openai" },
     { "path": "packages/apps" },
     { "path": "packages/client" },
@@ -24,7 +22,6 @@
     { "path": "examples/cards" },
     { "path": "examples/dialogs" },
     { "path": "examples/echo" },
-    { "path": "examples/graph" },
     { "path": "examples/http-adapters" },
     { "path": "examples/lights" },
     { "path": "examples/mcp" },
@@ -33,7 +30,6 @@
     { "path": "examples/message-extensions" },
     { "path": "examples/proactive-messaging" },
     { "path": "examples/reactions" },
-    { "path": "examples/tab" },
     { "path": "examples/targeted-messages" }
   ]
 }
