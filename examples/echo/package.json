@@ -12,7 +12,7 @@
   "scripts": {
     "clean": "rm -rf dist",
     "build": "tsc --build",
-    "start": "node .",
+    "start": "tsx src/index.ts",
     "dev": "tsx watch -r dotenv/config src/index.ts",
     "dev:teamsfx": "npx cross-env NODE_OPTIONS='--inspect=9239' npx env-cmd -f .env npm run dev",
     "dev:teamsfx:testtool": "npx cross-env NODE_OPTIONS='--inspect=9239' npx env-cmd -f .env npm run dev",

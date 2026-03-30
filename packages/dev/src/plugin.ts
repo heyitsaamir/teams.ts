@@ -1,5 +1,6 @@
 import http from 'http';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 import express from 'express';
 
@@ -68,6 +69,7 @@ export class DevtoolsPlugin {
   protected pages: Array<Page> = [];
 
   constructor(readonly options: DevtoolsPluginOptions = {}) {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const dist = path.join(__dirname, 'devtools-web');
     this.express = express();
     this.http = http.createServer(this.express);
