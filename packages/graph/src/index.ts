@@ -4,10 +4,11 @@ import { getInjectedUrl, getInjectedRequestConfig } from './utils/url';
 
 import type { CallOptions, EndpointRequest, SchemaVersion } from './types';
 
-// Build-time constant injected by tsup
-declare const __PACKAGE_VERSION__: string;
+// Package version — injected at test-time by jest globals, at build-time by postbuild script
+declare const __PACKAGE_VERSION__: string | undefined;
+const PACKAGE_VERSION: string = typeof __PACKAGE_VERSION__ !== 'undefined' ? __PACKAGE_VERSION__ : '0.0.0';
 
-export { CallOptions, EndpointRequest, SchemaVersion } from './types';
+export type { CallOptions, EndpointRequest, SchemaVersion } from './types';
 
 const defaultBaseUrlRoot = 'https://graph.microsoft.com';
 
@@ -42,7 +43,7 @@ export class Client {
         baseUrl: `${this.baseUrlRoot}/v1.0`,
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': `teams.ts[graph]/${__PACKAGE_VERSION__}`,
+          'User-Agent': `teams.ts[graph]/${PACKAGE_VERSION}`,
         },
       });
     } else if ('request' in options) {
@@ -50,7 +51,7 @@ export class Client {
         baseUrl: `${this.baseUrlRoot}/v1.0`,
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': `teams.ts[graph]/${__PACKAGE_VERSION__}`,
+          'User-Agent': `teams.ts[graph]/${PACKAGE_VERSION}`,
         },
       });
     } else {
@@ -59,7 +60,7 @@ export class Client {
         baseUrl: `${this.baseUrlRoot}/v1.0`,
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': `teams.ts[graph]/${__PACKAGE_VERSION__}`,
+          'User-Agent': `teams.ts[graph]/${PACKAGE_VERSION}`,
           ...options.headers,
         },
       });

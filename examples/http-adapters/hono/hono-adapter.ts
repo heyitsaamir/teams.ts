@@ -1,5 +1,5 @@
 import { Hono, Context } from 'hono';
-import type { StatusCode } from 'hono/utils/http-status';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
 import { HttpMethod, IHttpServerAdapter, HttpRouteHandler } from '@microsoft/teams.apps';
 
 /**
@@ -34,7 +34,7 @@ export class HonoAdapter implements IHttpServerAdapter {
       const body = await c.req.json().catch(() => ({}));
       const headers = Object.fromEntries(c.req.raw.headers.entries());
       const response = await handler({ body, headers });
-      return c.json(response.body as object, response.status as StatusCode);
+      return c.json(response.body as object, response.status as ContentfulStatusCode);
     });
   }
 

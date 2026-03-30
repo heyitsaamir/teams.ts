@@ -10,10 +10,8 @@
     "README.md"
   ],
   "scripts": {
-    "clean": "npx rimraf ./dist",
-    "lint": "npx eslint",
-    "lint:fix": "npx eslint --fix",
-    "build": "npx tsup",
+    "clean": "rm -rf dist",
+    "build": "tsc --build",
     "start": "node .",
     "dev": "tsx watch -r dotenv/config src/index.ts"
   },
@@ -27,9 +25,8 @@
     "@microsoft/teams.config": "*",
     "@types/node": "^22.0.2",
     "dotenv": "^16.4.5",
-    "rimraf": "^6.0.1",
     "tsx": "^4.20.6",
-    "tsup": "^8.4.0",
-    "typescript": "^5.4.5"
-  }
+    "typescript": "^5.8.0"
+  },
+  "type": "module"
 }
