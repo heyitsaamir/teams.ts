@@ -1,5 +1,6 @@
+import http from 'http';
 import 'dotenv/config';
-import { app, httpServer } from './teams-app';
+import { app, expressApp } from './teams-app';
 
 const port = parseInt(process.env.PORT || '3978', 10);
 
@@ -9,7 +10,8 @@ async function main() {
   // Initialize teams.ts app - this adds /api/messages to your Express app
   await app.initialize();
 
-  // Start your Express server
+  // Start your server — you control the lifecycle
+  const httpServer = http.createServer(expressApp);
   await new Promise<void>((resolve, reject) => {
     httpServer.listen(port, () => resolve());
     httpServer.once('error', reject);
