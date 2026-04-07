@@ -202,13 +202,24 @@ export class Client {
    * Create a copy of the client
    */
   clone(options?: ClientOptions) {
+    const parentUA = this.options.headers?.['User-Agent'];
+    const childUA = options?.headers?.['User-Agent'];
+    const mergedUA =
+      parentUA && childUA ? `${childUA} ${parentUA}` : (childUA || parentUA);
+
+    const headers = {
+      ...this.options.headers,
+      ...options?.headers,
+    };
+
+    if (mergedUA) {
+      headers['User-Agent'] = mergedUA;
+    }
+
     return new Client({
       ...this.options,
       ...options,
-      headers: {
-        ...this.options.headers,
-        ...options?.headers,
-      },
+      headers,
       interceptors: [...Array.from(this.interceptors.values()).map((i) => i.interceptor)],
     });
   }
