@@ -95,7 +95,7 @@ export class ServiceTokenValidator {
 
     // Validate serviceUrl against allowed domains
     if (serviceUrl && !this.skipServiceUrlValidation && !isAllowedServiceUrl(serviceUrl, this.additionalAllowedDomains)) {
-      throw new Error(`Service URL '${serviceUrl}' is not from an allowed Bot Framework domain`);
+      throw new Error(`Service URL '${serviceUrl}' is not from an allowed domain`);
     }
 
     // Convert JWT payload to IToken
