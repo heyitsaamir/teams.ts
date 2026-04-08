@@ -161,7 +161,7 @@ describe('ServiceTokenValidator', () => {
       const body = { serviceUrl: 'https://evil.com/api' };
 
       await expect(validator.check(authHeader, body)).rejects.toThrow(
-        "Service URL 'https://evil.com/api' is not from an allowed domain"
+        'Service URL \'https://evil.com/api\' is not from an allowed domain'
       );
     });
 
