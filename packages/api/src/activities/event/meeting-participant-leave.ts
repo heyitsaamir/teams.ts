@@ -1,4 +1,4 @@
-import { Account } from '../../models';
+import { TeamsChannelAccount } from '../../models';
 import { IActivity } from '../activity';
 
 export interface IMeetingParticipantLeaveEventActivity extends IActivity<'event'> {
@@ -18,7 +18,7 @@ export interface IMeetingParticipantLeaveEventActivity extends IActivity<'event'
       /**
        * The participant account.
        */
-      user: Account;
+      user: TeamsChannelAccount;
 
       /**
        * The participants info.
@@ -30,9 +30,9 @@ export interface IMeetingParticipantLeaveEventActivity extends IActivity<'event'
         inMeeting: boolean;
 
         /**
-         * The user's role.
+         * Optional. The user's role.
          */
-        role: string;
+        role?: string;
       };
     }[];
   };

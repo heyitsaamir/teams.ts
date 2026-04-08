@@ -6,9 +6,11 @@ import { z } from 'zod';
 
 import { ProjectLanguage } from './project/project';
 
+const languageEnum = z.enum(['typescript', 'csharp', 'python']);
+
 const Schema = z.object({
   env: z.string(),
-  language: z.enum(['typescript', 'csharp']).optional(),
+  language: languageEnum.optional(),
 });
 
 export type ISettings = z.infer<typeof Schema>;

@@ -19,9 +19,32 @@ import { ILogger } from '@microsoft/teams.common/logging';
 import { IStorage } from '@microsoft/teams.common/storage';
 
 import { ApiClient, GraphClient } from '../api';
-import { ISender, IStreamer } from '../types';
+import { IStreamer } from '../types';
+import { IActivitySender } from '../types/plugin/sender';
 
-export interface IActivityContextOptions<T extends Activity = Activity> {
+/**
+ * Constructor arguments for ActivityContext
+ * Internal implementation details not exposed in public interface
+ */
+export interface IActivityContextConstructorArgs {
+  /**
+   * activity sender for sending activities and creating streams
+   */
+  activitySender: IActivitySender;
+
+  /**
+   * call the next event/middleware handler
+   */
+  next: (
+    context?: IActivityContext
+  ) => (void | InvokeResponse) | Promise<void | InvokeResponse>;
+}
+
+/**
+ * Base activity context options
+ * These are the public properties exposed on the context
+ */
+export interface IBaseActivityContextOptions<T extends Activity = Activity> {
   /**
    * the app id of the bot
    */
@@ -76,17 +99,12 @@ export interface IActivityContextOptions<T extends Activity = Activity> {
   connectionName: string;
 
   /**
-   * extra data
+   * the user token for the activity context
    */
-  [key: string]: any;
-
-  /**
-   * call the next event/middleware handler
-   */
-  next: (
-    context?: IActivityContext
-  ) => (void | InvokeResponse) | Promise<void | InvokeResponse>;
+  userToken?: string;
 }
+
+export type IActivityContextOptions<T extends Activity = Activity, TExtraCtx extends Record<string, any> = Record<string, any>> = IBaseActivityContextOptions<T> & TExtraCtx;
 
 type SignInOptions = {
   /**
@@ -94,11 +112,23 @@ type SignInOptions = {
    * @default `Please Sign In...`
    */
   oauthCardText: string;
+
   /**
    * The text to display on the sign in button
    * @default `Sign In`
    */
   signInButtonText: string;
+
+  /**
+   * The sign in link to use in the card
+   */
+  signInLink?: string;
+
+  /**
+   * The connection name to use
+   */
+  connectionName?: string;
+
   /**
    * Construct your own sign in activity
    * By default, we create a simple oauth card with a sign in button.
@@ -111,18 +141,26 @@ type SignInOptions = {
   ) => ActivityLike;
 };
 
-export interface IActivityContext<T extends Activity = Activity>
-  extends IActivityContextOptions<T> {
+export interface IBaseActivityContext<T extends Activity = Activity, TExtraCtx extends Record<string, any> = Record<string, any>>
+  extends IBaseActivityContextOptions<T> {
   /**
    * a stream that can emit activity chunks
    */
   stream: IStreamer;
 
   /**
+   * call the next event/middleware handler
+   */
+  next: (
+    context?: IActivityContext & TExtraCtx
+  ) => (void | InvokeResponse) | Promise<void | InvokeResponse>;
+
+  /**
    * send an activity to the conversation
    * @param activity activity to send
+   * @param conversationRef optional conversation reference to send the activity to. By default, it will use the activity's conversation reference.
    */
-  send: (activity: ActivityLike) => Promise<SentActivity>;
+  send: (activity: ActivityLike, conversationRef?: ConversationReference) => Promise<SentActivity>;
 
   /**
    * reply to the inbound activity
@@ -143,13 +181,11 @@ export interface IActivityContext<T extends Activity = Activity>
   signout: (name?: string) => Promise<void>;
 }
 
-export const DEFAULT_SIGNIN_OPTIONS: SignInOptions = {
-  oauthCardText: 'Please Sign In...',
-  signInButtonText: 'Sign In',
-};
+export type IActivityContext<T extends Activity = Activity, TExtraContext = unknown> =
+  IBaseActivityContext<T> & (TExtraContext extends Record<string, any> ? TExtraContext : {});
 
-export class ActivityContext<T extends Activity = Activity>
-  implements IActivityContext<T> {
+export class ActivityContext<T extends Activity = Activity, TExtraCtx extends {} = {}>
+  implements IBaseActivityContext<T, TExtraCtx> {
   appId!: string;
   activity!: T;
   ref!: ConversationReference;
@@ -158,7 +194,7 @@ export class ActivityContext<T extends Activity = Activity>
   appGraph!: GraphClient;
   userGraph!: GraphClient;
   storage!: IStorage;
-  stream: IStreamer;
+  stream!: IStreamer;
   isSignedIn?: boolean;
   connectionName: string;
   next!: (
@@ -166,15 +202,15 @@ export class ActivityContext<T extends Activity = Activity>
   ) => (void | InvokeResponse) | Promise<void | InvokeResponse>;
   [key: string]: any;
 
-  protected _plugin: ISender;
-  protected _next?: (
-    context?: IActivityContext
-  ) => (void | InvokeResponse) | Promise<void | InvokeResponse>;
+  private activitySender: IActivitySender;
 
-  constructor(plugin: ISender, value: IActivityContextOptions) {
-    Object.assign(this, value);
-    this._plugin = plugin;
-    this.stream = plugin.createStream(value.ref);
+  constructor(value: IBaseActivityContextOptions & IActivityContextConstructorArgs) {
+    // Extract activitySender and next before Object.assign to avoid overwriting methods
+    const { activitySender, next, ...rest } = value;
+    Object.assign(this, rest);
+    this.activitySender = activitySender;
+    this.next = next;
+    this.stream = activitySender.createStream(value.ref);
     this.connectionName = value.connectionName;
 
     if (value.activity.type === 'message') {
@@ -194,25 +230,45 @@ export class ActivityContext<T extends Activity = Activity>
     }
   }
 
-  async send(activity: ActivityLike) {
-    return await this._plugin.send(toActivityParams(activity), this.ref);
+  async send(activity: ActivityLike, conversationRef?: ConversationReference) {
+    const params = toActivityParams(activity);
+
+    // For targeted send, set the recipient if not already set.
+    // For targeted update (params.id exists), we don't update recipient since recipient cannot be changed.
+    if (params.type === 'message' && params.recipient?.isTargeted && !params.id) {
+      if (!params.recipient) {
+        params.recipient = this.activity.from;
+      }
+    }
+
+    return await this.activitySender.send(params, conversationRef ?? this.ref);
   }
 
   async reply(activity: ActivityLike) {
     activity = toActivityParams(activity);
     activity.replyToId = this.activity.id;
+
     if (activity.type === 'message' && activity.text) {
       const blockQuote = this.buildBlockQuoteForActivity();
+
       if (blockQuote) {
         activity.text = `${blockQuote}\r\n${activity.text}`;
       }
     }
+
     return this.send(activity);
   }
 
   async signin(options?: Partial<SignInOptions>) {
-    const { oauthCardText, signInButtonText, overrideSignInActivity } = {
-      ...DEFAULT_SIGNIN_OPTIONS,
+    const {
+      oauthCardText,
+      signInButtonText,
+      connectionName,
+      signInLink,
+      overrideSignInActivity
+    }: SignInOptions = {
+      oauthCardText: 'Please Sign In...',
+      signInButtonText: 'Sign In',
       ...options,
     };
 
@@ -222,7 +278,7 @@ export class ActivityContext<T extends Activity = Activity>
       const res = await this.api.users.token.get({
         channelId: this.activity.channelId,
         userId: this.activity.from.id,
-        connectionName: this.connectionName,
+        connectionName: connectionName || this.connectionName,
       });
 
       return res.token;
@@ -231,7 +287,7 @@ export class ActivityContext<T extends Activity = Activity>
     }
 
     const tokenExchangeState: TokenExchangeState = {
-      connectionName: this.connectionName,
+      connectionName: connectionName || this.connectionName,
       conversation: convo,
       relatesTo: this.activity.relatesTo,
       msAppId: this.appId,
@@ -265,30 +321,31 @@ export class ActivityContext<T extends Activity = Activity>
         type: 'message',
         inputHint: 'acceptingInput',
         recipient: this.activity.from,
+        conversation: convo.conversation,
         attachments: [
           cardAttachment('oauth', {
             text: oauthCardText,
-            connectionName: this.connectionName,
+            connectionName: connectionName || this.connectionName,
             tokenExchangeResource: resource.tokenExchangeResource,
             tokenPostResource: resource.tokenPostResource,
             buttons: [
               {
                 type: 'signin',
                 title: signInButtonText,
-                value: resource.signInLink,
+                value: signInLink || resource.signInLink,
               },
             ],
           }),
         ],
-      }
+      }, convo
     );
   }
 
-  async signout() {
+  async signout(connectionName?: string) {
     await this.api.users.token.signOut({
       channelId: this.activity.channelId,
       userId: this.activity.from.id,
-      connectionName: this.connectionName,
+      connectionName: connectionName || this.connectionName,
     });
   }
 
@@ -305,6 +362,7 @@ export class ActivityContext<T extends Activity = Activity>
       stream: this.stream,
       isSignedIn: this.isSignedIn,
       connectionName: this.connectionName,
+      userToken: this.userToken,
       next: this.next.bind(this),
       reply: this.reply.bind(this),
       send: this.send.bind(this),

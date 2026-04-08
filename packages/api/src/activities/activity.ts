@@ -282,8 +282,18 @@ export class Activity<T extends string = string> implements IActivity<T> {
     return this;
   }
 
-  withRecipient(value: Account) {
-    this.recipient = value;
+  /**
+   * Set the recipient of this activity, optionally marking it as a targeted message.
+   * Targeted messages are ephemeral to the specified recipient in a shared conversation.
+   * @param value - The recipient account
+   * @param isTargeted - If true, marks this as a targeted message visible only to the recipient (default: false)
+   * @returns this instance for chaining
+   *
+   * @experimental This API is in preview and may change in the future.
+   * Diagnostic: ExperimentalTeamsTargeted
+   */
+  withRecipient(value: Account, isTargeted: boolean = false) {
+    this.recipient = { ...value, isTargeted: isTargeted ? true : undefined };
     return this;
   }
 

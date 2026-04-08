@@ -1,53 +1,65 @@
 import * as http from '@microsoft/teams.common/http';
 
-import pkg from 'src/../package.json';
-import { AppCatalogsClient } from './appCatalogs';
-import { AppRoleAssignmentsClient } from './appRoleAssignments';
-import { ApplicationTemplatesClient } from './applicationTemplates';
-import { ApplicationsClient } from './applications';
-import { ChatsClient } from './chats';
-import { CommunicationsClient } from './communications';
-import { EmployeeExperienceClient } from './employeeExperience';
-import { MeClient } from './me';
-import { SitesClient } from './sites';
-import { SolutionsClient } from './solutions';
-import { TeamsClient } from './teams';
-import { TeamsTemplatesClient } from './teamsTemplates';
-import { TeamworkClient } from './teamwork';
-import { UsersClient } from './users';
+import { getInjectedUrl, getInjectedRequestConfig } from './utils/url';
+
+import type { CallOptions, EndpointRequest, SchemaVersion } from './types';
+
+// Build-time constant injected by tsup
+declare const __PACKAGE_VERSION__: string;
+
+export { CallOptions, EndpointRequest, SchemaVersion } from './types';
+
+const defaultBaseUrlRoot = 'https://graph.microsoft.com';
+
+type Options = (http.Client | http.ClientOptions) & {
+  /** Graph service root. By default, the global commercial URL "https://graph.microsoft.com" is used,
+   * but certain tenants may wish to override this to direct Graph API calls to a different cloud instance.
+   */
+  baseUrlRoot?: string;
+};
 
 /**
  * /
- * Provides operations to manage the collection of application entities.
+ * Provides an entry point for invoking Microsoft Graph APIs.
  */
 export class Client {
-  protected baseUrl = '/';
-  protected http: http.Client;
+  protected baseUrlRoot;
+  protected _http: http.Client;
+  protected betaHttp?: http.Client;
 
-  constructor(options?: http.Client | http.ClientOptions) {
+  /**
+   * The underlying HTTP client, pre-configured with Graph base URL and headers.
+   * Use for raw Graph API requests not covered by endpoint functions.
+   */
+  get http(): http.Client {
+    return this._http;
+  }
+
+  constructor(options?: Options) {
+    this.baseUrlRoot = options?.baseUrlRoot ?? defaultBaseUrlRoot;
     if (!options) {
-      this.http = new http.Client({
-        baseUrl: 'https://graph.microsoft.com/v1.0',
+      this._http = new http.Client({
+        baseUrl: `${this.baseUrlRoot}/v1.0`,
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': `teams.ts[graph]/${pkg.version}`,
+          'User-Agent': `teams.ts[graph]/${__PACKAGE_VERSION__}`,
         },
       });
     } else if ('request' in options) {
-      this.http = options.clone({
-        baseUrl: 'https://graph.microsoft.com/v1.0',
+      this._http = options.clone({
+        baseUrl: `${this.baseUrlRoot}/v1.0`,
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': `teams.ts[graph]/${pkg.version}`,
+          'User-Agent': `teams.ts[graph]/${__PACKAGE_VERSION__}`,
         },
       });
     } else {
-      this.http = new http.Client({
+      this._http = new http.Client({
         ...options,
-        baseUrl: 'https://graph.microsoft.com/v1.0',
+        baseUrl: `${this.baseUrlRoot}/v1.0`,
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': `teams.ts[graph]/${pkg.version}`,
+          'User-Agent': `teams.ts[graph]/${__PACKAGE_VERSION__}`,
           ...options.headers,
         },
       });
@@ -55,127 +67,77 @@ export class Client {
   }
 
   /**
-   * `/appCatalogs`
+   * Executes a Graph API endpoint function with optional HTTP configuration
    *
-   * Provides operations to manage the appCatalogs singleton.
+   * @param func - The endpoint function to execute
+   * @param args - Arguments for the endpoint function, optionally followed by {@link CallConfig}
+   * @returns Promise resolving to the endpoint's response data
+   *
+   * @example
+   * ```typescript
+   * // Simple call
+   * const user = await client.call(endpoints.users.get, 'user-id');
+   *
+   * // With HTTP configuration
+   * const user = await client.call(endpoints.users.get, 'user-id', {
+   *   requestConfig: {
+   *     timeout: 5000
+   *   }
+   * });
+   * ```
    */
-  get appCatalogs() {
-    return new AppCatalogsClient(this.http);
+  async call<
+    F extends (...args: any[]) => EndpointRequest<any>,
+    R = ReturnType<F> extends EndpointRequest<infer T> ? T : never,
+  >(func: F, ...args: [...Parameters<F>, CallOptions?]): Promise<R> {
+    // Check if last arg is a config object
+    const lastArg = args[args.length - 1];
+    const hasOptions =
+      args.length > func.length &&
+      lastArg &&
+      typeof lastArg === 'object' &&
+      'requestConfig' in lastArg;
+
+    // Extract function arguments
+    const funcArgs = hasOptions ? args.slice(0, -1) : args;
+    const callOptions = hasOptions ? lastArg as CallOptions : undefined;
+
+    const {
+      ver = 'v1.0',
+      method,
+      path,
+      paramDefs = {},
+      params = {},
+      body,
+    } = func(...(funcArgs as any[]));
+    const url = getInjectedUrl(path, paramDefs, params);
+    const requestConfig = getInjectedRequestConfig(paramDefs, params, callOptions?.requestConfig);
+    const httpClient = this.getHttpClient(ver);
+
+    switch (method) {
+      case 'delete':
+      case 'get':
+        return (await httpClient[method](url, requestConfig)).data as R;
+      case 'patch':
+      case 'post':
+      case 'put':
+        return (await httpClient[method](url, body, requestConfig)).data as R;
+      default:
+        throw new Error(`Unsupported HTTP method: ${method}`);
+    }
   }
 
-  /**
-   * `/appRoleAssignments`
-   *
-   * Provides operations to manage the collection of appRoleAssignment entities.
-   */
-  get appRoleAssignments() {
-    return new AppRoleAssignmentsClient(this.http);
-  }
+  private getHttpClient(schemaVersion: SchemaVersion): http.Client {
+    if (schemaVersion === 'v1.0') {
+      return this._http;
+    }
 
-  /**
-   * `/applicationTemplates`
-   *
-   * Provides operations to manage the collection of applicationTemplate entities.
-   */
-  get applicationTemplates() {
-    return new ApplicationTemplatesClient(this.http);
-  }
+    this.betaHttp =
+      this.betaHttp ??
+      this._http.clone({
+        baseUrl: `${this.baseUrlRoot}/beta`,
+      });
 
-  /**
-   * `/applications`
-   *
-   * Provides operations to manage the collection of application entities.
-   */
-  get applications() {
-    return new ApplicationsClient(this.http);
-  }
-
-  /**
-   * `/chats`
-   *
-   * Provides operations to manage the collection of chat entities.
-   */
-  get chats() {
-    return new ChatsClient(this.http);
-  }
-
-  /**
-   * `/communications`
-   *
-   * Provides operations to manage the cloudCommunications singleton.
-   */
-  get communications() {
-    return new CommunicationsClient(this.http);
-  }
-
-  /**
-   * `/employeeExperience`
-   *
-   */
-  get employeeExperience() {
-    return new EmployeeExperienceClient(this.http);
-  }
-
-  /**
-   * `/me`
-   *
-   * Provides operations to manage the user singleton.
-   */
-  get me() {
-    return new MeClient(this.http);
-  }
-
-  /**
-   * `/sites`
-   *
-   * Provides operations to manage the collection of site entities.
-   */
-  get sites() {
-    return new SitesClient(this.http);
-  }
-
-  /**
-   * `/solutions`
-   *
-   * Provides operations to manage the solutionsRoot singleton.
-   */
-  get solutions() {
-    return new SolutionsClient(this.http);
-  }
-
-  /**
-   * `/teams`
-   *
-   * Provides operations to manage the collection of team entities.
-   */
-  get teams() {
-    return new TeamsClient(this.http);
-  }
-
-  /**
-   * `/teamsTemplates`
-   *
-   * Provides operations to manage the collection of teamsTemplate entities.
-   */
-  get teamsTemplates() {
-    return new TeamsTemplatesClient(this.http);
-  }
-
-  /**
-   * `/teamwork`
-   *
-   * Provides operations to manage the teamwork singleton.
-   */
-  get teamwork() {
-    return new TeamworkClient(this.http);
-  }
-
-  /**
-   * `/users`
-   *
-   * Provides operations to manage the collection of user entities.
-   */
-  get users() {
-    return new UsersClient(this.http);
+    return this.betaHttp;
   }
 }

@@ -1,0 +1,135 @@
+export * as itemActivityStats from './itemActivityStats';
+
+import type { EndpointRequest, Operation } from './../../../types/common.ts';
+
+export interface IEndpoints {
+  'DELETE /drives/{drive-id}/items/{driveItem-id}/analytics': Operation<
+    '/drives/{drive-id}/items/{driveItem-id}/analytics',
+    'delete'
+  >;
+  'GET /drives/{drive-id}/items/{driveItem-id}/analytics': Operation<
+    '/drives/{drive-id}/items/{driveItem-id}/analytics',
+    'get'
+  >;
+  'PATCH /drives/{drive-id}/items/{driveItem-id}/analytics': Operation<
+    '/drives/{drive-id}/items/{driveItem-id}/analytics',
+    'patch'
+  >;
+  'GET /drives/{drive-id}/items/{driveItem-id}/analytics/allTime': Operation<
+    '/drives/{drive-id}/items/{driveItem-id}/analytics/allTime',
+    'get'
+  >;
+  'GET /drives/{drive-id}/items/{driveItem-id}/analytics/lastSevenDays': Operation<
+    '/drives/{drive-id}/items/{driveItem-id}/analytics/lastSevenDays',
+    'get'
+  >;
+}
+
+/**
+ * `DELETE /drives/{drive-id}/items/{driveItem-id}/analytics`
+ *
+ */
+export function del(
+  params?: IEndpoints['DELETE /drives/{drive-id}/items/{driveItem-id}/analytics']['parameters']
+): EndpointRequest<
+  IEndpoints['DELETE /drives/{drive-id}/items/{driveItem-id}/analytics']['response']
+> {
+  return {
+    method: 'delete',
+    path: '/drives/{drive-id}/items/{driveItem-id}/analytics',
+    paramDefs: {
+      header: ['If-Match'],
+      path: ['drive-id', 'driveItem-id'],
+    },
+    params,
+  };
+}
+
+/**
+ * `GET /drives/{drive-id}/items/{driveItem-id}/analytics`
+ *
+ * Analytics about the view activities that took place on this item.
+ */
+export function list(
+  params?: IEndpoints['GET /drives/{drive-id}/items/{driveItem-id}/analytics']['parameters']
+): EndpointRequest<
+  IEndpoints['GET /drives/{drive-id}/items/{driveItem-id}/analytics']['response']
+> {
+  return {
+    method: 'get',
+    path: '/drives/{drive-id}/items/{driveItem-id}/analytics',
+    paramDefs: {
+      path: ['drive-id', 'driveItem-id'],
+      query: ['$select', '$expand'],
+    },
+    params,
+  };
+}
+
+/**
+ * `PATCH /drives/{drive-id}/items/{driveItem-id}/analytics`
+ *
+ */
+export function update(
+  body: IEndpoints['PATCH /drives/{drive-id}/items/{driveItem-id}/analytics']['body'],
+  params?: IEndpoints['PATCH /drives/{drive-id}/items/{driveItem-id}/analytics']['parameters']
+): EndpointRequest<
+  IEndpoints['PATCH /drives/{drive-id}/items/{driveItem-id}/analytics']['response']
+> {
+  return {
+    method: 'patch',
+    path: '/drives/{drive-id}/items/{driveItem-id}/analytics',
+    paramDefs: {
+      path: ['drive-id', 'driveItem-id'],
+    },
+    params,
+    body,
+  };
+}
+
+export const allTime = {
+  /**
+  * `GET /drives/{drive-id}/items/{driveItem-id}/analytics/allTime`
+  *
+  * Get itemAnalytics about the views that took place under this resource.
+The itemAnalytics resource is a convenient way to get activity stats for allTime and the lastSevenDays.
+For a custom time range or interval, use the getActivitiesByInterval API.
+  */
+  get: function get(
+    params?: IEndpoints['GET /drives/{drive-id}/items/{driveItem-id}/analytics/allTime']['parameters']
+  ): EndpointRequest<
+    IEndpoints['GET /drives/{drive-id}/items/{driveItem-id}/analytics/allTime']['response']
+  > {
+    return {
+      method: 'get',
+      path: '/drives/{drive-id}/items/{driveItem-id}/analytics/allTime',
+      paramDefs: {
+        query: ['$select', '$expand'],
+        path: ['drive-id', 'driveItem-id'],
+      },
+      params,
+    };
+  },
+};
+
+export const lastSevenDays = {
+  /**
+   * `GET /drives/{drive-id}/items/{driveItem-id}/analytics/lastSevenDays`
+   *
+   */
+  list: function list(
+    params?: IEndpoints['GET /drives/{drive-id}/items/{driveItem-id}/analytics/lastSevenDays']['parameters']
+  ): EndpointRequest<
+    IEndpoints['GET /drives/{drive-id}/items/{driveItem-id}/analytics/lastSevenDays']['response']
+  > {
+    return {
+      method: 'get',
+      path: '/drives/{drive-id}/items/{driveItem-id}/analytics/lastSevenDays',
+      paramDefs: {
+        query: ['$select', '$expand'],
+        path: ['drive-id', 'driveItem-id'],
+      },
+      params,
+    };
+  },
+};

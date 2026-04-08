@@ -6,13 +6,18 @@
 
 a suite of packages used to build on the Teams Platform.
 
-<a href="https://microsoft.github.io/teams-ai" target="_blank">
+<a href="https://microsoft.github.io/teams-sdk" target="_blank">
     <img src="https://img.shields.io/badge/📖 Getting Started-blue?style=for-the-badge" />
 </a>
 
+## Questions & Issues
+
+- **Questions or Feature Requests**: Please use [GitHub Discussions](https://github.com/microsoft/teams-sdk/discussions)
+- **Bug Reports**: Please [open an issue](https://github.com/microsoft/teams.ts/issues/new/choose)
+
 - [Scripts](#scripts)
 - [Packages](#packages)
-- [Tests](#tests)
+- [Examples](#examples)
 
 ## Scripts
 
@@ -42,7 +47,7 @@ $: npm run lint:fix
 
 ### Dev
 
-> for apps/tests only
+> for apps/examples only
 
 ```bash
 $: npm run dev
@@ -72,6 +77,8 @@ $: npm run test
 - [`@microsoft/teams.dev`](./packages/dev/README.md)
 - [`@microsoft/teams.devtools`](./packages/devtools/README.md)
 - [`@microsoft/teams.graph`](./packages/graph/README.md)
+- [`@microsoft/teams.graph-endpoints`](./packages/graph-endpoints/README.md)
+- [`@microsoft/teams.graph-endpoints-beta`](./packages/graph-endpoints-beta/README.md)
 - [`@microsoft/teams.openai`](./packages/openai/README.md)
 
 ## External Packages
@@ -81,21 +88,24 @@ $: npm run test
 - [`@microsoft/teams.mcp`](./external/mcp/README.md)
 - [`@microsoft/teams.mcpclient`](./external/mcpclient/README.md)
 
-## Test apps
+## Example apps
 
 > ℹ️ used to test the SDK or as a visual sample of how certain features can be implemented.
 
 > ⚠️ **WARNING** these apps are changed often and are not intended to be used outside the
 > projects monorepo. To easily setup a new project please use the **templates** available via
 > the `@microsoft/teams.cli` and follow the
-> [Getting Started](https://microsoft.github.io/teams-ai/2.getting-started/1.create-application.html) documentation!
+> [Getting Started](https://microsoft.github.io/teams-sdk/typescript/getting-started) documentation!
 
-- [`@tests/echo`](./tests/echo/README.md)
-- [`@tests/botbuilder`](./tests/botbuilder/README.md)
-- [`@tests/auth`](./tests/auth/README.md)
-- [`@tests/lights`](./tests/lights/README.md)
-- [`@tests/tab`](./tests/tab/README.md)
-- [`@tests/mcp`](./tests/mcp/README.md)
+- [`@examples/echo`](./examples/echo/README.md)
+- [`@examples/auth`](./examples/auth/README.md)
+- [`@examples/botbuilder`](./examples/botbuilder/README.md)
+- [`@examples/graph`](./examples/graph/README.md)
+- [`@examples/lights`](./examples/lights/README.md)
+- [`@examples/reactions`](./examples/reactions/README.md)
+- [`@examples/tab`](./examples/tab/README.md)
+- [`@examples/mcp`](./examples/mcp/README.md)
+- [`@examples/meetings`](./examples/meetings/README.md)
 
 ## Links
 

@@ -93,4 +93,53 @@ describe('ConversationActivityClient', () => {
     await client.getMembers('1', '2');
     expect(spy).toHaveBeenCalledWith('/v3/conversations/1/activities/2/members');
   });
+
+  describe('targeted activities', () => {
+    it('should create targeted activity', async () => {
+      const client = new ConversationActivityClient('');
+      const spy = jest.spyOn(client.http, 'post').mockResolvedValueOnce({});
+
+      await client.createTargeted('1', {
+        type: 'message',
+        text: 'hi',
+      });
+
+      expect(spy).toHaveBeenCalledWith(
+        '/v3/conversations/1/activities?isTargetedActivity=true',
+        {
+          type: 'message',
+          text: 'hi',
+        }
+      );
+    });
+
+    it('should update targeted activity', async () => {
+      const client = new ConversationActivityClient('');
+      const spy = jest.spyOn(client.http, 'put').mockResolvedValueOnce({});
+
+      await client.updateTargeted('1', '2', {
+        type: 'message',
+        text: 'hi updated',
+      });
+
+      expect(spy).toHaveBeenCalledWith(
+        '/v3/conversations/1/activities/2?isTargetedActivity=true',
+        {
+          type: 'message',
+          text: 'hi updated',
+        }
+      );
+    });
+
+    it('should delete targeted activity', async () => {
+      const client = new ConversationActivityClient('');
+      const spy = jest.spyOn(client.http, 'delete').mockResolvedValueOnce({});
+
+      await client.deleteTargeted('1', '2');
+
+      expect(spy).toHaveBeenCalledWith(
+        '/v3/conversations/1/activities/2?isTargetedActivity=true'
+      );
+    });
+  });
 });

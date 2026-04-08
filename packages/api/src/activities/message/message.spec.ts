@@ -276,4 +276,84 @@ describe('MessageActivity', () => {
       expect(mention).toBeUndefined();
     });
   });
+
+  describe('withRecipient', () => {
+    it('should default to not targeted', () => {
+      const activity = new MessageActivity('hello').withRecipient({ id: '1', name: '', role: 'user' });
+
+      expect(activity.recipient.isTargeted).toBeUndefined();
+      expect(activity.recipient).toBeDefined();
+    });
+
+    it('should set isTargeted when second parameter is true', () => {
+      const activity = new MessageActivity('hello').withRecipient({ id: '1', name: '', role: 'user' }, true);
+
+      expect(activity.recipient.isTargeted).toBe(true);
+      expect(activity.recipient).toBeDefined();
+    });
+
+    it('should set isTargeted and recipient with full account', () => {
+      const activity = new MessageActivity('hello').withRecipient(
+        { id: 'user-123', name: 'user', role: 'user' },
+        true
+      );
+
+      expect(activity.recipient.isTargeted).toBe(true);
+      expect(activity.recipient).toBeDefined();
+      expect(activity.recipient.id).toBe('user-123');
+      expect(activity.recipient.name).toBe('user');
+      expect(activity.recipient.role).toBe('user');
+    });
+
+    it('should maintain fluent chaining', () => {
+      const activity = new MessageActivity('hello')
+        .withImportance('high')
+        .withRecipient({ id: 'user-123', name: '', role: 'user' })
+        .addText(' world');
+
+      expect(activity.text).toBe('hello world');
+      expect(activity.importance).toBe('high');
+      expect(activity.recipient).toBeDefined();
+      expect(activity.recipient.id).toBe('user-123');
+      expect(activity.recipient.isTargeted).toBeUndefined();
+    });
+
+    it('should be chainable with targeted flag', () => {
+      const activity = new MessageActivity('hello')
+        .withImportance('high')
+        .withRecipient({ id: 'user-456', name: '', role: 'user' }, true)
+        .withDeliveryMode('notification');
+
+      expect(activity.text).toBe('hello');
+      expect(activity.importance).toBe('high');
+      expect(activity.deliveryMode).toBe('notification');
+      expect(activity.recipient.isTargeted).toBe(true);
+      expect(activity.recipient.id).toBe('user-456');
+    });
+
+    it('should preserve isTargeted and recipient when using from()', () => {
+      const original = new MessageActivity('test')
+        .withRecipient({ id: 'user-789', name: '', role: 'user' }, true)
+        .toInterface();
+
+      const restored = MessageActivity.from(original);
+
+      expect(restored.recipient.isTargeted).toBe(true);
+      expect(restored.recipient.id).toBe('user-789');
+    });
+
+    it('should validate fluent API', () => {
+      const msg = new MessageActivity('Hello')
+        .withDeliveryMode('notification')
+        .withRecipient({ id: 'user-123', name: 'Test User', role: 'user' }, true)
+        .withImportance('high');
+
+      expect(msg.text).toBe('Hello');
+      expect(msg.recipient.isTargeted).toBe(true);
+      expect(msg.recipient).toBeDefined();
+      expect(msg.recipient.id).toBe('user-123');
+      expect(msg.recipient.name).toBe('Test User');
+      expect(msg.recipient.role).toBe('user');
+    });
+  });
 });

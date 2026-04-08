@@ -2,12 +2,11 @@ import { EventHandler } from '@microsoft/teams.common';
 
 import { App } from './app';
 import {
-  IActivityEvent,
   IActivityResponseEvent,
   IActivitySentEvent,
   IErrorEvent,
 } from './events';
-import { AppEvents, IPlugin, ISender } from './types';
+import { AppEvents, IPlugin } from './types';
 
 /**
  * subscribe to an event
@@ -35,45 +34,28 @@ export async function onError<TPlugin extends IPlugin>(
   this.events.emit('error', event);
 }
 
-export async function onActivity<TPlugin extends IPlugin>(
-  this: App<TPlugin>,
-  sender: ISender,
-  event: IActivityEvent
-) {
-  this.events.emit('activity', event);
-  await this.process(sender, { ...event, sender });
-}
-
 export async function onActivitySent<TPlugin extends IPlugin>(
   this: App<TPlugin>,
-  sender: ISender,
   event: IActivitySentEvent
 ) {
   for (const plugin of this.plugins) {
     if (plugin.onActivitySent) {
-      await plugin.onActivitySent({
-        ...event,
-        sender,
-      });
+      await plugin.onActivitySent(event);
     }
   }
 
-  this.events.emit('activity.sent', { ...event, sender });
+  this.events.emit('activity.sent', event);
 }
 
 export async function onActivityResponse<TPlugin extends IPlugin>(
   this: App<TPlugin>,
-  sender: ISender,
   event: IActivityResponseEvent
 ) {
   for (const plugin of this.plugins) {
     if (plugin.onActivityResponse) {
-      await plugin.onActivityResponse({
-        ...event,
-        sender,
-      });
+      await plugin.onActivityResponse(event);
     }
   }
 
-  this.events.emit('activity.response', { ...event, sender });
+  this.events.emit('activity.response', event);
 }

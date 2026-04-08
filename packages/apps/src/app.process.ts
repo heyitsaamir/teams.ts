@@ -1,25 +1,28 @@
-import { ActivityLike, ConversationReference, isInvokeResponse } from '@microsoft/teams.api';
-
-
-
+import { Activity, ActivityLike, ConversationReference, InvokeResponse, isInvokeResponse } from '@microsoft/teams.api';
 
 import { ApiClient, GraphClient } from './api';
 import { App } from './app';
 import { ActivityContext, IActivityContext } from './contexts';
 import { IActivityEvent } from './events';
-import { IPlugin, ISender } from './types';
+import { IPlugin } from './types';
 
 /**
  * activity handler called when an inbound activity is received
- * @param sender the plugin to use for sending activities
  * @param event the received activity event
  */
 export async function $process<TPlugin extends IPlugin>(
   this: App<TPlugin>,
-  sender: ISender,
   event: IActivityEvent
-) {
-  const { token, activity } = event;
+): Promise<InvokeResponse> {
+  const { token, body } = event;
+
+  if (!body) {
+    throw new Error('Activity body is required');
+  }
+
+  // TODO: We currently simply cast the models to Activity,
+  // but we should probably be validating this conversion
+  const activity = body as Activity;
 
   this.log.debug(
     `activity/${activity.type}${activity.type === 'invoke' ? `/${activity.name}` : ''}`
@@ -31,8 +34,6 @@ export async function $process<TPlugin extends IPlugin>(
     serviceUrl = serviceUrl.slice(0, serviceUrl.length - 1);
   }
 
-  await this.refreshTokens();
-
   let userToken: string | undefined;
 
   try {
@@ -41,21 +42,13 @@ export async function $process<TPlugin extends IPlugin>(
     // noop
   }
 
-
-  let appToken: string | undefined;
-  try {
-    appToken = await this.getOrRefreshTenantToken(token.tenantId || 'common');
-  } catch (err) {
-    // noop
-  }
-
   const client = this.client.clone();
-  const apiClient = new ApiClient(serviceUrl, this.client.clone({ token: () => this.tokens.bot }));
+  const apiClient = new ApiClient(serviceUrl, this.client.clone({ token: () => this.getBotToken() }), this.options.apiClientSettings);
   const userGraph = new GraphClient(
     client.clone({ token: () => userToken })
   );
   const appGraph = new GraphClient(
-    client.clone({ token: () => appToken })
+    client.clone({ token: () => this.getAppGraphToken(activity.conversation.tenantId ?? 'common') })
   );
 
   const ref: ConversationReference = {
@@ -70,20 +63,29 @@ export async function $process<TPlugin extends IPlugin>(
 
   const routes = this.router.select(activity);
 
+  // Collect plugin contexts BEFORE creating the activity context
+  let pluginContexts: {} = {};
   for (let i = this.plugins.length - 1; i > -1; i--) {
     const plugin = this.plugins[i];
 
     if (plugin.onActivity) {
-      routes.unshift(({ next }) => {
-        plugin.onActivity!({
-          ...ref,
-          sender: sender,
-          activity,
-          token,
-        });
-
-        return next();
+      const additionalPluginContext = await plugin.onActivity({
+        ...ref,
+        activity,
+        token,
       });
+
+      if (additionalPluginContext) {
+        for (const key in additionalPluginContext) {
+          if (key in pluginContexts) {
+            this.log.warn(`Plugin context key "${key}" already exists. Overriding.`);
+          }
+        }
+        pluginContexts = {
+          ...pluginContexts,
+          ...additionalPluginContext,
+        };
+      }
     }
   }
 
@@ -94,7 +96,11 @@ export async function $process<TPlugin extends IPlugin>(
     if (i === routes.length - 1) return data;
     i++;
 
-    const res = await routes[i](ctx || context.toInterface());
+    const mergedContext = ctx || {
+      ...context.toInterface(),
+      ...pluginContexts,
+    };
+    const res = await routes[i](mergedContext);
 
     if (res) {
       data = res;
@@ -103,32 +109,29 @@ export async function $process<TPlugin extends IPlugin>(
     return data;
   };
 
-  const context = new ActivityContext(sender, {
-    ...event,
+  const context = new ActivityContext({
+    activity,
     next,
     api: apiClient,
     userGraph,
     appGraph,
     appId: this.id || '',
     log: this.log,
-    tokens: this.tokens,
+    userToken: userToken,
     ref,
     storage: this.storage,
     isSignedIn: !!userToken,
     connectionName: this.oauth.defaultConnectionName,
+    activitySender: this.activitySender,
+    ...pluginContexts
   });
 
-  if (routes.length === 0) {
-    return { status: 200 };
-  }
-
   const send = context.send.bind(context);
-  context.send = async (activity: ActivityLike) => {
-    const res = await send(activity);
+  context.send = async (activity: ActivityLike, conversationRef?: ConversationReference) => {
+    const res = await send(activity, conversationRef ?? ref);
 
-    this.onActivitySent(sender, {
-      ...ref,
-      sender,
+    this.onActivitySent({
+      ...(conversationRef ?? ref),
       activity: res,
     });
 
@@ -136,43 +139,45 @@ export async function $process<TPlugin extends IPlugin>(
   };
 
   context.stream.events.on('chunk', (activity) => {
-    this.onActivitySent(sender, {
+    this.onActivitySent({
       ...ref,
-      sender,
       activity,
     });
   });
 
   context.stream.events.once('close', (activity) => {
-    this.onActivitySent(sender, {
+    this.onActivitySent({
       ...ref,
-      sender,
       activity,
     });
   });
 
+  let response: InvokeResponse;
   try {
-    let res = await next();
+    const res = await next();
 
     await context.stream.close();
 
-    if (!res || !isInvokeResponse(res)) {
-      res = { status: 200, body: res };
+    if (isInvokeResponse(res)) {
+      response = res;
+    } else {
+      response = { status: 200, body: res };
     }
 
-    this.onActivityResponse(sender, {
+    this.onActivityResponse({
       ...ref,
-      sender,
       activity,
       response: res,
     });
   } catch (error: any) {
-    this.onError({ error, activity, sender });
-    this.onActivityResponse(sender, {
+    response = { status: 500 };
+    this.onError({ error, activity });
+    this.onActivityResponse({
       ...ref,
-      sender,
       activity,
-      response: { status: 500 },
+      response: response,
     });
   }
+
+  return response;
 }

@@ -1,0 +1,72 @@
+{{#each importedChildren}}
+export * as {{exportName}} from './{{fileSystemName}}';
+{{/each}}
+
+{{#if hasExports}}
+import type { EndpointRequest, Operation } from './{{commonPath}}';
+
+export interface IEndpoints {
+  {{#each endpoints}}
+  "{{@key}}": Operation<
+    "{{url}}",
+    "{{method}}"
+  >,
+  {{/each}}
+  {{#each inlineChildren}}
+    {{#each endpoints}}
+      "{{@key}}": Operation<
+        "{{url}}",
+        "{{method}}"
+      >,
+    {{/each}}
+  {{/each}}
+}
+{{/if}}
+
+{{!-- 
+  Generate the functions directly supported by this path
+  These are simple 'get', 'list', 'del' etc functions
+--}}
+{{#each endpoints}}
+{{> functionDefinition apiVersion=../apiVersion isStandaloneExport=true }}
+
+{{/each}}
+
+{{!--
+  Generate any inline children as exported objects that contain the
+   'get', 'list', 'del' etc functions, e.g.
+
+  export const maybe = {
+    create: // ...implementation...
+  };
+
+  Some exports have names that are actually reserved keywords.
+  They get special treatment, e.g.:
+
+  const false_ = {
+    /**
+    * `POST /drives/{drive-id}/items/{driveItem-id}/workbook/functions/false`
+    *
+    */
+    create: // ...implementation...
+  };
+  export { false_ as false };
+  
+  This lets us keep the most natural name, and allows for moving 'false' to a separate
+  file in the future without having to make a breaking rename.
+--}}
+{{#each inlineChildren}}
+  {{#if (isReservedKeyword exportName)}}
+    const {{exportName}}_ = {
+  {{else}}
+    export const {{exportName}} = {
+  {{/if}}
+  {{#each endpoints}}
+    {{> functionDefinition apiVersion=../../apiVersion }},
+  {{/each}}
+};
+  {{#if (isReservedKeyword exportName)}}
+    export { {{exportName}}_ as {{exportName}} }
+  {{/if}}
+
+{{/each}}

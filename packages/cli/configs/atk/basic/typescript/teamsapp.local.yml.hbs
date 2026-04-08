@@ -19,7 +19,7 @@ provision:
     writeToEnvironmentFile:
         teamsAppId: TEAMS_APP_ID
 
-  # Automates the creation an Azure AD app registration which is required for a bot.
+ # Automates the creation an Azure AD app registration which is required for a bot.
   # The Bot ID (AAD app client ID) and Bot Password (AAD app client secret) are saved to an environment file.
   - uses: botAadApp/create
     with:

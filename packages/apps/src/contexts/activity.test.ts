@@ -12,12 +12,11 @@ import { ILogger } from '@microsoft/teams.common/logging';
 import { IStorage } from '@microsoft/teams.common/storage';
 
 import { ApiClient, GraphClient } from '../api';
-import { ISender } from '../types';
 
 import { ActivityContext } from './activity';
 
 describe('ActivityContext', () => {
-  let mockSender: ISender;
+  let mockSender: { send: jest.Mock; createStream: jest.Mock };
   let mockApiClient: MockedObject<ApiClient>;
   let mockLogger: ILogger;
   let mockStorage: MockedObject<IStorage>;
@@ -53,6 +52,7 @@ describe('ActivityContext', () => {
       info: jest.fn(),
       warn: jest.fn(),
       error: jest.fn(),
+      trace: jest.fn(),
       log: jest.fn(),
     };
     mockLogger = {
@@ -99,7 +99,7 @@ describe('ActivityContext', () => {
   };
 
   const buildActivityContext = (activity: Activity): ActivityContext => {
-    return new ActivityContext(mockSender, {
+    return new ActivityContext({
       appId: 'test-app',
       activity,
       ref: mockRef,
@@ -110,6 +110,7 @@ describe('ActivityContext', () => {
       storage: mockStorage,
       connectionName: 'test-connection',
       next: jest.fn(),
+      activitySender: mockSender,
     });
   };
 
@@ -205,6 +206,64 @@ describe('ActivityContext', () => {
         mockRef
       );
     });
+
+    describe('targeted messages', () => {
+      it('sends targeted message with recipient from incoming activity', async () => {
+        const activity = buildIncomingMessageActivity('Hello world');
+        context = buildActivityContext(activity);
+
+        const targetedActivity = new MessageActivity('Secret message')
+          .withRecipient({ id: 'test-user', name: 'Test User', role: 'user' }, true);
+
+        await context.send(targetedActivity);
+
+        expect(mockSender.send).toHaveBeenCalledTimes(1);
+        expect(mockSender.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            text: 'Secret message',
+            type: 'message',
+            recipient: expect.objectContaining({ id: 'test-user', name: 'Test User', role: 'user', isTargeted: true }),
+          }),
+          mockRef
+        );
+      });
+
+      it('sends targeted message with explicit recipient id', async () => {
+        const activity = buildIncomingMessageActivity('Hello world');
+        context = buildActivityContext(activity);
+
+        const targetedActivity = new MessageActivity('Secret message')
+          .withRecipient({ id: 'explicit-user-id', name: '', role: 'user' }, true);
+
+        await context.send(targetedActivity);
+
+        expect(mockSender.send).toHaveBeenCalledTimes(1);
+        expect(mockSender.send).toHaveBeenCalledWith(
+          expect.objectContaining({
+            text: 'Secret message',
+            type: 'message',
+            recipient: expect.objectContaining({ id: 'explicit-user-id', name: '', role: 'user', isTargeted: true }),
+          }),
+          mockRef
+        );
+      });
+
+      it('does not set recipient for targeted message updates', async () => {
+        const activity = buildIncomingMessageActivity('Hello world');
+        context = buildActivityContext(activity);
+
+        const updateActivity = new MessageActivity('Updated message')
+          .withId('existing-activity-id')
+          .withRecipient({ id: 'user-1', name: '', role: 'user' }, true);
+
+        await context.send(updateActivity);
+
+        expect(mockSender.send).toHaveBeenCalledTimes(1);
+        const sentActivity = (mockSender.send as jest.Mock).mock.calls[0][0];
+        expect(sentActivity.id).toBe('existing-activity-id');
+        expect(sentActivity.recipient.isTargeted).toBe(true);
+      });
+    });
   });
 
   describe('signin/signout flow', () => {
@@ -281,7 +340,7 @@ describe('ActivityContext', () => {
     });
 
     it('creates new 1:1 conversation for group chat signin', async () => {
-      context = new ActivityContext(mockSender, {
+      context = new ActivityContext({
         ...context,
         activity: {
           ...buildIncomingMessageActivity('Test message'),
@@ -291,6 +350,7 @@ describe('ActivityContext', () => {
             conversationType: 'group',
           },
         },
+        activitySender: mockSender,
       });
 
       mockApiClient.users.token.get.mockRejectedValueOnce(

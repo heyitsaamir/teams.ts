@@ -19,6 +19,7 @@ param serverfarmsName string = resourceBaseName
 param webAppName string = resourceBaseName
 param location string = resourceGroup().location
 param oauthConnectionName string
+param tenantId string
 
 // Compute resources for your Web App
 resource serverfarm 'Microsoft.Web/serverfarms@2021-02-01' = {
@@ -30,7 +31,7 @@ resource serverfarm 'Microsoft.Web/serverfarms@2021-02-01' = {
   }
 }
 
-// Web App that hosts your bot
+// Web App that hosts your agent
 resource webApp 'Microsoft.Web/sites@2021-02-01' = {
   kind: 'app'
   location: location
@@ -47,23 +48,23 @@ resource webApp 'Microsoft.Web/sites@2021-02-01' = {
         }
         {
           name: 'WEBSITE_NODE_DEFAULT_VERSION'
-          value: '~16' // Set NodeJS version to 16.x for your site
+          value: '~20' // Set NodeJS version to 20.x for your site
         }
         {
           name: 'RUNNING_ON_AZURE'
           value: '1'
         }
         {
-          name: 'BOT_ID'
+          name: 'CLIENT_ID'
           value: botAadAppClientId
         }
         {
-          name: 'BOT_PASSWORD'
+          name: 'CLIENT_SECRET'
           value: botAadAppClientSecret
         }
         {
-          name: 'OAUTH_CONNECTION_NAME'
-          value: oauthConnectionName
+          name: 'TENANT_ID'
+          value: tenantId
         }
       ]
       ftpsState: 'FtpsOnly'
@@ -77,9 +78,11 @@ module azureBotRegistration './botRegistration/azurebot.bicep' = {
   params: {
     resourceBaseName: resourceBaseName
     botAadAppClientId: botAadAppClientId
+    botAddAppClientSecret: botAadAppClientSecret
     botAppDomain: webApp.properties.defaultHostName
     botDisplayName: botDisplayName
     oauthConnectionName: oauthConnectionName
+    tenantId: tenantId
   }
 }
 

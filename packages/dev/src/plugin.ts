@@ -7,16 +7,13 @@ import * as uuid from 'uuid';
 
 import { WebSocket, WebSocketServer } from 'ws';
 
-import { ActivityParams, ConversationReference, IToken } from '@microsoft/teams.api';
+import { InvokeResponse, IToken } from '@microsoft/teams.api';
 import {
-  HttpPlugin,
   Logger,
   IPluginActivityEvent,
   IPluginActivityResponseEvent,
   IPluginActivitySentEvent,
   IPluginStartEvent,
-  ISender,
-  IStreamer,
   Plugin,
   Dependency,
   Event,
@@ -36,6 +33,10 @@ type ResolveRejctPromise<T = any> = {
   readonly reject: (err: any) => void;
 };
 
+export type DevtoolsPluginOptions = {
+  readonly customPort?: number;
+};
+
 @Plugin({
   name: 'devtools',
   version: pkg.version,
@@ -43,7 +44,7 @@ type ResolveRejctPromise<T = any> = {
     '\n'
   ),
 })
-export class DevtoolsPlugin implements ISender {
+export class DevtoolsPlugin {
   @Logger()
   readonly log!: ILogger;
 
@@ -53,14 +54,11 @@ export class DevtoolsPlugin implements ISender {
   @Dependency({ optional: true })
   readonly name?: IToken;
 
-  @Dependency()
-  readonly httpPlugin!: HttpPlugin;
-
   @Event('error')
   readonly $onError!: (event: IErrorEvent) => void;
 
   @Event('activity')
-  readonly $onActivity!: (event: IActivityEvent) => void;
+  readonly $onActivity!: (event: IActivityEvent) => Promise<InvokeResponse>;
 
   protected http: http.Server;
   protected express: express.Application;
@@ -69,16 +67,18 @@ export class DevtoolsPlugin implements ISender {
   protected pending: Record<string, ResolveRejctPromise> = {};
   protected pages: Array<Page> = [];
 
-  constructor() {
+  constructor(readonly options: DevtoolsPluginOptions = {}) {
     const dist = path.join(__dirname, 'devtools-web');
     this.express = express();
     this.http = http.createServer(this.express);
     this.ws = new WebSocketServer({ server: this.http, path: '/devtools/sockets' });
     this.ws.on('connection', this.onSocketConnection.bind(this));
     this.express.use('/devtools', express.static(dist));
-    this.express.get('/devtools/*', (_, res) => {
+    // Catch-all route for SPA - must come after static middleware
+    this.express.get('/devtools/*splat', (_, res) => {
       res.sendFile(path.join(dist, 'index.html'));
     });
+    this.options = options;
   }
 
   /**
@@ -103,19 +103,23 @@ export class DevtoolsPlugin implements ISender {
   }
 
   onStart({ port }: IPluginStartEvent) {
-    port += 1;
+    const numericPort = this.options.customPort ?? (
+      typeof port === 'string' ? parseInt(port, 10) + 1 : port + 1);
 
     this.express.use(
       router({
-        port,
+        port: numericPort,
         log: this.log,
         process: (token, activity) => {
           return new Promise((resolve, reject) => {
             this.pending[activity.id] = { resolve, reject };
             this.$onActivity({
-              sender: this.httpPlugin,
               token,
-              activity,
+              body: activity,
+            }).catch((err) => {
+              this.log.error('Error processing activity:', err);
+              reject(err);
+              delete this.pending[activity.id];
             });
           });
         },
@@ -128,8 +132,8 @@ export class DevtoolsPlugin implements ISender {
         return reject(error);
       });
 
-      this.http.listen(port, async () => {
-        this.log.info(`available at http://localhost:${port}/devtools`);
+      this.http.listen(numericPort, async () => {
+        this.log.info(`available at http://localhost:${numericPort}/devtools`);
         resolve();
       });
     });
@@ -164,14 +168,6 @@ export class DevtoolsPlugin implements ISender {
     delete this.pending[activity.id];
   }
 
-  async send(activity: ActivityParams, ref: ConversationReference) {
-    return await this.httpPlugin.send(activity, ref);
-  }
-
-  createStream(ref: ConversationReference): IStreamer {
-    return this.httpPlugin.createStream(ref);
-  }
-
   protected onSocketConnection(socket: WebSocket) {
     const id = uuid.v4();
     this.sockets.set(id, socket);
@@ -182,7 +178,6 @@ export class DevtoolsPlugin implements ISender {
         type: 'metadata',
         body: {
           id: this.id?.toString(),
-          name: this.name?.toString(),
           pages: this.pages,
         },
         sentAt: new Date(),

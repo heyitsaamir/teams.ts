@@ -6,20 +6,21 @@ import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
+import express from 'express';
 import { jsonSchemaToZod } from 'json-schema-to-zod';
 import { z } from 'zod';
 
 import { IChatPrompt } from '@microsoft/teams.ai';
 import {
-  Dependency,
-  HttpPlugin,
+  ExpressAdapter,
+  HttpServer,
+  IHttpServer,
   IPlugin,
   IPluginStartEvent,
   Logger,
   Plugin,
 } from '@microsoft/teams.apps';
 import { ILogger } from '@microsoft/teams.common';
-import { DevtoolsPlugin } from '@microsoft/teams.dev';
 
 import pkg from '../package.json';
 
@@ -111,11 +112,8 @@ export class McpPlugin implements IPlugin {
   @Logger()
   readonly logger!: ILogger;
 
-  @Dependency()
-  readonly httpPlugin!: HttpPlugin;
-
-  @Dependency({ optional: true })
-  readonly devtoolsPlugin?: DevtoolsPlugin;
+  @HttpServer()
+  readonly httpServer!: IHttpServer;
 
   readonly server: McpServer;
   protected id: number = -1;
@@ -191,14 +189,8 @@ export class McpPlugin implements IPlugin {
   }
 
   onInit() {
-    this.devtoolsPlugin?.addPage({
-      name: 'mcp',
-      displayName: 'MCP',
-      url: this.inspector,
-    });
-
     if (this.transport.type === 'sse') {
-      return this.onInitSSE(this.httpPlugin, this.transport);
+      return this.onInitSSE(this.transport);
     }
 
     return this.onInitStdio(this.transport);
@@ -219,10 +211,19 @@ export class McpPlugin implements IPlugin {
     return this.server.connect(transport);
   }
 
-  protected onInitSSE(http: HttpPlugin, options: McpSSETransportOptions) {
+  protected onInitSSE(options: McpSSETransportOptions) {
     const path = options.path || '/mcp';
 
-    http.get(path, (_, res) => {
+    const adapter = this.httpServer.adapter;
+    if (!(adapter instanceof ExpressAdapter)) {
+      throw new Error(
+        'McpPlugin with SSE transport requires ExpressAdapter. ' +
+        'Please use: new App({ httpServerAdapter: new ExpressAdapter() })'
+      );
+    }
+
+    // Register GET endpoint for SSE connections
+    adapter.get(path, (_: express.Request, res: express.Response) => {
       this.id++;
       this.logger.debug('connecting...');
       const transport = new SSEServerTransport(
@@ -238,7 +239,8 @@ export class McpPlugin implements IPlugin {
       this.server.connect(transport);
     });
 
-    http.post(`${path}/:id/messages`, (req, res) => {
+    // Register POST endpoint for SSE messages
+    adapter.post(`${path}/:id/messages`, (req: express.Request, res: express.Response) => {
       const id = +req.params.id;
       const { transport } = this.connections[id];
 
