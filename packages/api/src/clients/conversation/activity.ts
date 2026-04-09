@@ -1,7 +1,7 @@
 import { Client, ClientOptions } from '@microsoft/teams.common/http';
 
 import { Activity } from '../../activities';
-import { Account, Resource } from '../../models';
+import { resolveAadObjectId, Resource } from '../../models';
 import { ApiClientSettings, mergeApiClientSettings } from '../api-client-settings';
 
 export type ActivityParams = Pick<Activity, 'type'> & Partial<Activity>;
@@ -65,10 +65,10 @@ export class ConversationActivityClient {
   }
 
   async getMembers(conversationId: string, id: string) {
-    const res = await this.http.get<Account[]>(
+    const res = await this.http.get<any[]>(
       `${this.serviceUrl}/v3/conversations/${conversationId}/activities/${id}/members`
     );
-    return res.data;
+    return res.data?.map(resolveAadObjectId);
   }
 
   async createTargeted(conversationId: string, params: ActivityParams) {
