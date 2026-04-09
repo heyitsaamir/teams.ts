@@ -72,7 +72,7 @@ export class MeetingClient {
   async sendNotification(
     meetingId: string,
     params: MeetingNotificationParams
-  ){
+  ) {
     const body = {
       type: params.type ?? 'targetedMeetingNotification',
       value: params.value,
