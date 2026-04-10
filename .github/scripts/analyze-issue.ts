@@ -47,7 +47,8 @@ The SDK is an npm workspace with these packages:
 - dev: Development utilities plugin
 - config: Shared config
 
-Analyze the issue and respond with ONLY valid JSON (no markdown fencing):
+Analyze the issue and respond with ONLY valid JSON (no markdown fencing).
+Be concise — sacrifice grammar if needed to keep summaries short:
 {
   "category": "bug | feature | question | docs | security",
   "severity": "critical | high | medium | low | info",
