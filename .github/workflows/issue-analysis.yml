@@ -42,9 +42,7 @@ jobs:
           node-version: '24.x'
 
       - name: Install dependencies
-        run: |
-          npm install
-          npm install -g tsx
+        run: cd .github/scripts/issue-analysis && npm install
 
       - name: Install Copilot CLI
         run: npm install -g @github/copilot
@@ -151,4 +149,4 @@ jobs:
           ISSUE_HTML_URL: ${{ steps.issue.outputs.html_url }}
           ISSUE_LABELS: ${{ steps.issue.outputs.labels }}
           ISSUE_BODY: ${{ steps.issue.outputs.body }}
-        run: tsx .github/scripts/analyze-issue.ts
+        run: npx --prefix .github/scripts/issue-analysis tsx .github/scripts/issue-analysis/analyze-issue.ts
