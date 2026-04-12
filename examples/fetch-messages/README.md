@@ -4,27 +4,25 @@ Demonstrates fetching chat message history using the Graph API with `app.getAppG
 
 ## Why `getAppGraph(tenantId)`?
 
-The Graph API endpoint `GET /chats/{chat-id}/messages` requires an app-only token scoped to the specific tenant. The default `app.graph` client acquires a token for the `common` tenant, which fails with 403 when reading chat messages.
-
-`app.getAppGraph(tenantId)` returns a Graph client with a token scoped to the correct tenant:
+The Graph API requires an app-only token scoped to the conversation's tenant. `app.getAppGraph(tenantId)` returns a Graph client with the correct token:
 
 ```typescript
-// Fails — token for "common" tenant
-const response = await app.graph.call(chats.messages.list, { 'chat-id': chatId });
-
-// Works — token scoped to the conversation's tenant
-const graph = app.getAppGraph(tenantId);
-const response = await graph.call(chats.messages.list, { 'chat-id': chatId });
+const graph = app.getAppGraph(activity.conversation.tenantId);
+const response = await graph.call(chats.messages.list, {
+  'chat-id': chatId,
+  $top: 5,
+});
 ```
 
-## Commands
+## Chat ID mapping
 
-| Command | Description |
-|---------|-------------|
-| `/history` | Fetch last 5 messages using `app.getAppGraph(tenantId)` |
-| `/history-broken` | Attempt the same with `app.graph` (demonstrates the failure) |
-| `/app-info` | Fetch the bot's own app registration details from Azure AD |
-| Any message | Echo + usage hint |
+The Bot Framework conversation ID differs from the Graph API chat ID:
+
+| Context | Graph endpoint | Chat ID |
+|---------|---------------|---------|
+| Channel | `/teams/{aadGroupId}/channels/{channelId}/messages` | From `channelData.team.aadGroupId` |
+| Group chat | `/chats/{chat-id}/messages` | `conversationId` works directly |
+| Personal/DM | `/chats/{chat-id}/messages` | Construct `19:{userAadId}_{botAppId}@unq.gbl.spaces` |
 
 ## Setup
 
@@ -37,21 +35,19 @@ npm install -g https://github.com/heyitsaamir/teamscli/releases/latest/download/
 Create and configure the app:
 
 ```bash
-# Log in to Microsoft 365
 teams login
 
-# Create the app with bot and credentials
 teams app create \
   --name "Fetch Messages Bot" \
   --endpoint "https://YOUR-TUNNEL-URL/api/messages" \
   --env .env
 
-# Add RSC permissions so the bot can read chat messages
+# Receive all messages + read history in channels
 teams app rsc add <appId> ChannelMessage.Read.Group --type Application
+
+# Receive all messages + read history in chats/DMs
 teams app rsc add <appId> ChatMessage.Read.Chat --type Application
 ```
-
-The `teams app create` command outputs an installation link — use it to install the app in Teams.
 
 ## Run
 
@@ -59,7 +55,4 @@ The `teams app create` command outputs an installation link — use it to instal
 pnpm dev
 ```
 
-Then message the bot in Teams:
-1. Send `/history` — fetches messages using a tenant-scoped token (works)
-2. Send `/history-broken` — attempts with the default "common" token (fails with 403)
-3. Send `/app-info` — fetches the bot's own app registration details (requires `Application.Read.All`)
+Send `history` in any conversation (DM, group chat, or @mention in a channel).

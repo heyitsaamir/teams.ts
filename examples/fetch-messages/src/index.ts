@@ -1,39 +1,68 @@
 import { App } from '@microsoft/teams.apps';
 import { ConsoleLogger } from '@microsoft/teams.common/logging';
-import { applications, chats } from '@microsoft/teams.graph-endpoints';
+import { chats, teams } from '@microsoft/teams.graph-endpoints';
 
 const app = new App({
   logger: new ConsoleLogger('@examples/fetch-messages', { level: 'debug' }),
 });
 
 /**
- * /history — Fetch message history for the current chat using the Graph API.
+ * Resolve the Graph API chat ID from a Bot Framework activity.
  *
- * This requires a tenant-scoped app token because the Graph API endpoint
- * `GET /chats/{chat-id}/messages` needs app-only permissions (e.g.,
- * ChatMessage.Read.Chat via RSC) authenticated against the specific tenant.
- *
- * Using `app.graph` (the default Graph client) won't work here because it
- * acquires a token for the "common" tenant, which can't read chat messages.
- *
- * `app.getAppGraph(tenantId)` solves this by returning a Graph client with
- * a token scoped to the correct tenant.
+ * The Bot Framework conversation ID differs from the Graph API chat ID:
+ * - Channel: use /teams/{aadGroupId}/channels/{channelId}/messages
+ * - Group chat: conversationId (19:...@thread.v2) works directly
+ * - Personal/DM: construct 19:{userAadId}_{botAppId}@unq.gbl.spaces
  */
-app.message('/history', async ({ send, activity }) => {
-  const chatId = activity.conversation.id;
+function resolveGraphChatId(activity: { conversation: any; from: any }): string {
+  const conversationId = activity.conversation.id;
+  if (activity.conversation.conversationType === 'personal' && activity.from.aadObjectId && app.id) {
+    return `19:${activity.from.aadObjectId}_${app.id}@unq.gbl.spaces`;
+  }
+  return conversationId;
+}
+
+/**
+ * Fetch message history for the current conversation using the Graph API.
+ *
+ * Requires `app.getAppGraph(tenantId)` for a tenant-scoped app token.
+ * Works with RSC permissions only — no Azure AD app permissions needed:
+ * - ChannelMessage.Read.Group (channels)
+ * - ChatMessage.Read.Chat (group chats and DMs)
+ */
+app.message(/history/i, async ({ send, activity }) => {
   const tenantId = activity.conversation.tenantId;
+  const channelData = activity.channelData as {
+    team?: { aadGroupId?: string };
+    channel?: { id?: string };
+  } | undefined;
+  const aadGroupId = channelData?.team?.aadGroupId;
+  const channelId = channelData?.channel?.id;
+  const isChannel = activity.conversation.conversationType === 'channel';
+  const chatId = resolveGraphChatId(activity);
 
   try {
     const graph = app.getAppGraph(tenantId);
-    const response = await graph.call(chats.messages.list, {
-      'chat-id': chatId,
-      $top: 5,
-      $orderby: ['createdDateTime desc'],
-    });
+    let messages: { from?: any; body?: any }[];
 
-    const messages = response.value ?? [];
+    if (isChannel && aadGroupId && channelId) {
+      const response = await graph.call(teams.channels.messages.list, {
+        'team-id': aadGroupId,
+        'channel-id': channelId,
+        $top: 5,
+      });
+      messages = response.value ?? [];
+    } else {
+      const response = await graph.call(chats.messages.list, {
+        'chat-id': chatId,
+        $top: 5,
+        $orderby: ['createdDateTime desc'],
+      });
+      messages = response.value ?? [];
+    }
+
     if (messages.length === 0) {
-      await send('No messages found in this chat.');
+      await send('No messages found.');
       return;
     }
 
@@ -49,93 +78,13 @@ app.message('/history', async ({ send, activity }) => {
   } catch (e) {
     await send(
       `Failed to fetch messages: ${e}\n\n` +
-      'Ensure the app has **ChatMessage.Read.Chat** RSC permission. ' +
-      'See README for setup instructions.'
+      'Ensure the app has RSC permissions. See README for setup.'
     );
   }
 });
 
-/**
- * /history-broken — Same as /history but uses `app.graph` (no tenant scoping).
- *
- * This demonstrates the problem: `app.graph` uses a token for the "common"
- * tenant, which will fail with a 403 when trying to read chat messages.
- */
-app.message('/history-broken', async ({ send, activity }) => {
-  const chatId = activity.conversation.id;
-
-  try {
-    // This uses the default graph client which gets a token for "common" tenant
-    const response = await app.graph.call(chats.messages.list, {
-      'chat-id': chatId,
-      $top: 5,
-      $orderby: ['createdDateTime desc'],
-    });
-
-    const messages = response.value ?? [];
-    await send(`Fetched ${messages.length} messages (this usually fails).`);
-  } catch (e) {
-    await send(
-      `**Expected failure** using \`app.graph\` (no tenant scoping):\n\n\`${e}\`\n\n` +
-      'Try `/history` instead — it uses `app.getAppGraph(tenantId)` which works.'
-    );
-  }
-});
-
-/**
- * /app-info — Fetch the bot's own app registration details from Azure AD.
- *
- * Uses `GET /applications/{application-id}` which requires a tenant-scoped
- * app token with Application.Read.All permission. This is another example
- * of an app-only Graph call that needs `getAppGraph(tenantId)`.
- */
-app.message('/app-info', async ({ send, activity }) => {
-  const tenantId = activity.conversation.tenantId;
-  const appId = app.id;
-
-  if (!appId) {
-    await send('App ID not configured.');
-    return;
-  }
-
-  try {
-    const graph = app.getAppGraph(tenantId);
-    const result = await graph.call(applications.list, {
-      $filter: `appId eq '${appId}'`,
-      $select: ['id', 'appId', 'displayName', 'signInAudience', 'requiredResourceAccess'],
-    });
-
-    const registration = result.value?.[0];
-    if (!registration) {
-      await send(`No app registration found for appId \`${appId}\`.`);
-      return;
-    }
-
-    const permissions = registration.requiredResourceAccess?.flatMap(
-      (r) => r.resourceAccess?.map((a) => `\`${a.id}\` (${a.type})`) ?? []
-    ) ?? [];
-
-    await send(
-      `**App Registration**\n\n` +
-      `- **Name:** ${registration.displayName}\n` +
-      `- **App ID:** \`${registration.appId}\`\n` +
-      `- **Object ID:** \`${registration.id}\`\n` +
-      `- **Sign-in audience:** ${registration.signInAudience}\n` +
-      `- **Permissions:** ${permissions.length > 0 ? permissions.join(', ') : 'none configured'}`
-    );
-  } catch (e) {
-    await send(
-      `Failed to fetch app details: ${e}\n\n` +
-      'Ensure the app has **Application.Read.All** permission granted in Azure Portal.'
-    );
-  }
-});
-
-app.on('message', async ({ reply, activity }) => {
-  await reply(
-    `Echo: "${activity.text}"\n\n` +
-    'Try `/history`, `/history-broken`, or `/app-info` to compare.'
-  );
+app.on('message', async ({ reply }) => {
+  await reply('Send `history` to fetch message history for this conversation.');
 });
 
 app.start().catch(console.error);
