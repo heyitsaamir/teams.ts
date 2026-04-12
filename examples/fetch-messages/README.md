@@ -24,6 +24,16 @@ The Bot Framework conversation ID differs from the Graph API chat ID:
 | Group chat | `/chats/{chat-id}/messages` | `conversationId` works directly |
 | Personal/DM | `/chats/{chat-id}/messages` | Construct `19:{userAadId}_{botAppId}@unq.gbl.spaces` |
 
+## Permissions
+
+| Context | Permission | Type |
+|---------|-----------|------|
+| Channel | `ChannelMessage.Read.Group` | RSC |
+| Group chat | `ChatMessage.Read.Chat` | RSC |
+| Personal/DM | `Chat.Read.All` | Azure AD (admin consent) |
+
+RSC permissions cover channels and group chats. Personal/DM chats are [limited to `ChatMessageReadReceipt.Read.Chat`](https://learn.microsoft.com/en-us/microsoftteams/platform/graph-api/rsc/resource-specific-consent) for RSC, so reading DM message history requires the `Chat.Read.All` Azure AD app permission with admin consent.
+
 ## Setup
 
 Install the [Teams CLI](https://github.com/heyitsaamir/teamscli):
@@ -42,11 +52,23 @@ teams app create \
   --endpoint "https://YOUR-TUNNEL-URL/api/messages" \
   --env .env
 
-# Receive all messages + read history in channels
+# RSC: receive all messages + read history in channels
 teams app rsc add <appId> ChannelMessage.Read.Group --type Application
 
-# Receive all messages + read history in chats/DMs
+# RSC: receive all messages + read history in group chats
 teams app rsc add <appId> ChatMessage.Read.Chat --type Application
+```
+
+For DM message history, RSC is not sufficient. Add the `Chat.Read.All` Azure AD app permission and grant admin consent:
+
+```bash
+# Chat.Read.All (6b7d71aa-...) on Microsoft Graph (00000003-...)
+az ad app permission add \
+  --id <appId> \
+  --api 00000003-0000-0000-c000-000000000000 \
+  --api-permissions 6b7d71aa-70aa-4810-a8d9-5d9fb2830017=Role
+
+az ad app permission admin-consent --id <appId>
 ```
 
 ## Run
