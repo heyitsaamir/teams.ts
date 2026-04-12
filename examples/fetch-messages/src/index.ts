@@ -1,6 +1,6 @@
 import { App } from '@microsoft/teams.apps';
 import { ConsoleLogger } from '@microsoft/teams.common/logging';
-import { chats } from '@microsoft/teams.graph-endpoints';
+import { applications, chats } from '@microsoft/teams.graph-endpoints';
 
 const app = new App({
   logger: new ConsoleLogger('@examples/fetch-messages', { level: 'debug' }),
@@ -82,8 +82,60 @@ app.message('/history-broken', async ({ send, activity }) => {
   }
 });
 
+/**
+ * /app-info — Fetch the bot's own app registration details from Azure AD.
+ *
+ * Uses `GET /applications/{application-id}` which requires a tenant-scoped
+ * app token with Application.Read.All permission. This is another example
+ * of an app-only Graph call that needs `getAppGraph(tenantId)`.
+ */
+app.message('/app-info', async ({ send, activity }) => {
+  const tenantId = activity.conversation.tenantId;
+  const appId = app.id;
+
+  if (!appId) {
+    await send('App ID not configured.');
+    return;
+  }
+
+  try {
+    const graph = app.getAppGraph(tenantId);
+    const result = await graph.call(applications.list, {
+      $filter: `appId eq '${appId}'`,
+      $select: ['id', 'appId', 'displayName', 'signInAudience', 'requiredResourceAccess'],
+    });
+
+    const registration = result.value?.[0];
+    if (!registration) {
+      await send(`No app registration found for appId \`${appId}\`.`);
+      return;
+    }
+
+    const permissions = registration.requiredResourceAccess?.flatMap(
+      (r) => r.resourceAccess?.map((a) => `\`${a.id}\` (${a.type})`) ?? []
+    ) ?? [];
+
+    await send(
+      `**App Registration**\n\n` +
+      `- **Name:** ${registration.displayName}\n` +
+      `- **App ID:** \`${registration.appId}\`\n` +
+      `- **Object ID:** \`${registration.id}\`\n` +
+      `- **Sign-in audience:** ${registration.signInAudience}\n` +
+      `- **Permissions:** ${permissions.length > 0 ? permissions.join(', ') : 'none configured'}`
+    );
+  } catch (e) {
+    await send(
+      `Failed to fetch app details: ${e}\n\n` +
+      'Ensure the app has **Application.Read.All** permission granted in Azure Portal.'
+    );
+  }
+});
+
 app.on('message', async ({ reply, activity }) => {
-  await reply(`Echo: "${activity.text}"\n\nTry \`/history\` or \`/history-broken\` to compare.`);
+  await reply(
+    `Echo: "${activity.text}"\n\n` +
+    'Try `/history`, `/history-broken`, or `/app-info` to compare.'
+  );
 });
 
 app.start().catch(console.error);

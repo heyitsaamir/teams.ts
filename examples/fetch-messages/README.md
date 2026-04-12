@@ -23,6 +23,7 @@ const response = await graph.call(chats.messages.list, { 'chat-id': chatId });
 |---------|-------------|
 | `/history` | Fetch last 5 messages using `app.getAppGraph(tenantId)` |
 | `/history-broken` | Attempt the same with `app.graph` (demonstrates the failure) |
+| `/app-info` | Fetch the bot's own app registration details from Azure AD |
 | Any message | Echo + usage hint |
 
 ## Setup
@@ -61,3 +62,4 @@ pnpm dev
 Then message the bot in Teams:
 1. Send `/history` — fetches messages using a tenant-scoped token (works)
 2. Send `/history-broken` — attempts with the default "common" token (fails with 403)
+3. Send `/app-info` — fetches the bot's own app registration details (requires `Application.Read.All`)
