@@ -44,7 +44,7 @@ app.on('message', async ({ reply, send, activity, ref }) => {
   }
 
   // ============================================
-  // toThreadedConversationId() + app.send() — advanced manual control (channels only)
+  // toThreadedConversationId() + app.send() — advanced manual control
   // ============================================
   if (text.includes('test manual')) {
     const threadId = toThreadedConversationId(conversationId, threadRootId);
