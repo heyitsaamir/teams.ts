@@ -146,9 +146,11 @@ export type AppOptions<TPlugin extends IPlugin> = {
   readonly skipAuth?: boolean;
 
   /**
-   * Additional allowed service URL hostnames beyond the built-in defaults.
-   * Use this if your bot receives activities from non-standard channels
-   * with service URLs outside the cloud environment's allowed hostnames.
+   * Additional service URL hostnames accepted beyond the cloud preset.
+   * Entries must be bare hostnames matched exactly (case-insensitive);
+   * wildcard patterns like `'*.example.com'`, URL suffixes, or full URLs are NOT supported.
+   * If `'*'` is present in the list, hostname allowlist validation is disabled,
+   * but service URLs are still parsed and must satisfy the existing scheme checks.
    * @example ['api.my-custom-channel.com']
    */
   readonly additionalAllowedDomains?: string[];
