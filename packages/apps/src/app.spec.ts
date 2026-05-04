@@ -258,6 +258,24 @@ describe('App', () => {
     });
   });
 
+  describe('token validation configuration', () => {
+    it('should pass token audience options to the Entra validator', () => {
+      const app = new App({
+        clientId: 'test-client-id',
+        clientSecret: 'test-client-secret',
+        tenantId: 'test-tenant-id',
+        applicationIdUri: 'api://my-app.contoso.com/test-client-id',
+        tokenOptions: { additionalAudience: 'https://api.botframework.com' },
+        httpServerAdapter: new TestAdapter(),
+      });
+
+      expect(app.entraTokenValidator?.options.audience).toEqual([
+        'api://my-app.contoso.com/test-client-id',
+        'https://api.botframework.com'
+      ]);
+    });
+  });
+
   describe('service URL configuration', () => {
     const originalEnv = process.env.SERVICE_URL;
 

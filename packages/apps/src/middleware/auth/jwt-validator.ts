@@ -9,13 +9,21 @@ const DEFAULTS = {
   clockTolerance: 300 // 5 minutes
 };
 
+function normalizeAudience(audience?: string | string[]): string[] {
+  if (!audience) {
+    return [];
+  }
+
+  return Array.isArray(audience) ? audience : [audience];
+}
+
 export interface IJwtValidationOptions {
   /** Required: Application/Client ID for audience validation */
   clientId: string;
 
   // Additional audience values to accept beyond the defaults
   // (clientId, api://clientId, api://botid-clientId)
-  audience?: string[];
+  audience?: string | string[];
 
   /**
    * This may be 'common', 'organizations', 'consumers' for multi-tenant apps,
@@ -85,7 +93,7 @@ export class JwtValidator {
           this.options.clientId,
           `api://botid-${this.options.clientId}`,
           `api://${this.options.clientId}`,
-          ...(this.options.audience ?? []),
+          ...normalizeAudience(this.options.audience),
         ],
         issuer: undefined,
         ignoreExpiration: false,
@@ -225,7 +233,9 @@ export class JwtValidator {
       }
 
       const loginEndpoint = this.options.loginEndpoint ?? 'https://login.microsoftonline.com';
-      if (!allowedTenantIds.some((tenantId) => iss.startsWith(`${loginEndpoint}/${tenantId}/`))) {
+      if (!allowedTenantIds.some((tenantId) => {
+        return iss.startsWith(`${loginEndpoint}/${tenantId}/`) || iss.startsWith(`https://sts.windows.net/${tenantId}/`);
+      })) {
         throw new Error(`Token issuer '${iss}' not in allowed tenant IDs: ${allowedTenantIds.join(', ')}`);
       }
     }
@@ -275,15 +285,21 @@ export const createEntraTokenValidator = (
     allowedTenantIds?: string[];
     requiredScope?: string;
     applicationIdUri?: string;
+    audience?: string | string[];
     loginEndpoint?: string;
     logger?: ILogger
   },
 ) => {
+  const audience = [
+    ...(options?.applicationIdUri ? [options.applicationIdUri] : []),
+    ...normalizeAudience(options?.audience),
+  ];
+
   return new JwtValidator({
     clientId,
     tenantId,
     loginEndpoint: options?.loginEndpoint,
-    audience: options?.applicationIdUri ? [options.applicationIdUri] : undefined,
+    audience: audience.length > 0 ? audience : undefined,
     validateIssuer: {
       allowedTenantIds: options?.allowedTenantIds
     },

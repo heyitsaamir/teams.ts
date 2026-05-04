@@ -1,3 +1,5 @@
+import { ServiceTokenValidator } from '../middleware/auth/service-token-validator';
+
 import { HttpMethod, IHttpServerAdapter, HttpRouteHandler } from './adapter';
 import { HttpServer } from './http-server';
 
@@ -62,6 +64,27 @@ describe('HttpServer', () => {
       await server.initialize({ credentials: undefined });
 
       expect(adapter.routes).toHaveLength(1);
+    });
+
+    it('should pass token audience options to service token validation', async () => {
+      const customServer = new HttpServer(adapter, {
+        skipAuth: false,
+        messagingEndpoint: '/api/messages',
+        tokenOptions: { additionalAudience: 'https://api.botframework.com' }
+      });
+
+      await customServer.initialize({
+        credentials: { clientId: 'test-app', tenantId: 'test-tenant' } as any,
+      });
+
+      expect(ServiceTokenValidator).toHaveBeenCalledWith(
+        'test-app',
+        'test-tenant',
+        undefined,
+        expect.anything(),
+        undefined,
+        'https://api.botframework.com'
+      );
     });
   });
 

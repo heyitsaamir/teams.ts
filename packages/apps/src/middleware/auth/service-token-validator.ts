@@ -25,12 +25,14 @@ export class ServiceTokenValidator {
     tenantId?: string,
     serviceUrl?: string,
     logger?: ILogger,
-    cloud?: CloudEnvironment
+    cloud?: CloudEnvironment,
+    audience?: string | string[]
   ) {
     const env = cloud ?? PUBLIC;
     this.jwtValidator = new JwtValidator({
       clientId: appId,
       tenantId,
+      audience,
       loginEndpoint: env.loginEndpoint,
       validateIssuer: { allowedIssuer: env.tokenIssuer },
       validateServiceUrl: serviceUrl ? { expectedServiceUrl: serviceUrl } : undefined,

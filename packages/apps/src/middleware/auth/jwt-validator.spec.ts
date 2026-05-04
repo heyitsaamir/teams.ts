@@ -270,6 +270,26 @@ describe('JwtValidator', () => {
         expect(result).toEqual(expect.objectContaining(mockTokenPayload)); // Single-tenant ignores allowedTenantIds
       });
 
+      it('should accept v1 sts issuer for single-tenant apps', async () => {
+        const validator = new JwtValidator({
+          clientId: mockClientId,
+          tenantId: mockTenantId,
+          jwksUriOptions: { type: 'tenantId' },
+          validateIssuer: { allowedTenantIds: ['different-tenant'] }
+        });
+
+        const token = createTestToken({
+          ...mockTokenPayload,
+          iss: `https://sts.windows.net/${mockTenantId}/`
+        });
+        const result = await validator.validateAccessToken(token);
+
+        expect(result).toEqual(expect.objectContaining({
+          ...mockTokenPayload,
+          iss: `https://sts.windows.net/${mockTenantId}/`
+        }));
+      });
+
       it('should validate tenant-based issuer for multi-tenant apps', async () => {
         const validator = new JwtValidator({
           clientId: mockClientId,
@@ -281,6 +301,26 @@ describe('JwtValidator', () => {
         const result = await validator.validateAccessToken(validToken);
 
         expect(result).toEqual(expect.objectContaining(mockTokenPayload));
+      });
+
+      it('should accept v1 sts issuer for multi-tenant apps', async () => {
+        const validator = new JwtValidator({
+          clientId: mockClientId,
+          tenantId: 'common',
+          jwksUriOptions: { type: 'tenantId' },
+          validateIssuer: { allowedTenantIds: [mockTenantId] }
+        });
+
+        const token = createTestToken({
+          ...mockTokenPayload,
+          iss: `https://sts.windows.net/${mockTenantId}/`
+        });
+        const result = await validator.validateAccessToken(token);
+
+        expect(result).toEqual(expect.objectContaining({
+          ...mockTokenPayload,
+          iss: `https://sts.windows.net/${mockTenantId}/`
+        }));
       });
 
       it('should reject invalid tenant issuer for multi-tenant apps', async () => {
@@ -706,7 +746,19 @@ describe('JwtValidator', () => {
         expect(validator.options.audience).toEqual(['api://my-app.contoso.com/test-client-id']);
       });
 
-      it('should not set audience when applicationIdUri is not provided', () => {
+      it('should append custom audience values', () => {
+        const validator = createEntraTokenValidator(mockTenantId, mockClientId, {
+          applicationIdUri: 'api://my-app.contoso.com/test-client-id',
+          audience: ['https://api.botframework.com']
+        });
+
+        expect(validator.options.audience).toEqual([
+          'api://my-app.contoso.com/test-client-id',
+          'https://api.botframework.com'
+        ]);
+      });
+
+      it('should not set audience when no audience options are provided', () => {
         const validator = createEntraTokenValidator(mockTenantId, mockClientId);
 
         expect(validator.options.audience).toBeUndefined();
