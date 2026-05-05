@@ -164,24 +164,12 @@ export type AppOptions<TPlugin extends IPlugin> = {
   readonly apiClientSettings?: ApiClientSettings;
 
   /**
-   * Token validation options for inbound auth.
-   */
-  readonly tokenOptions?: AppTokenOptions;
-
-  /**
    * Cloud environment for sovereign cloud support.
    * Accepts a CloudEnvironment object or uses CLOUD environment variable.
    * Valid env var values: "Public", "USGov", "USGovDoD", "China".
    * Defaults to PUBLIC (commercial cloud).
    */
   readonly cloud?: CloudEnvironment;
-};
-
-export type AppTokenOptions = {
-  /**
-   * Additional accepted audience value(s) for inbound token validation.
-   */
-  readonly additionalAudience?: string | string[];
 };
 
 export type AppActivityOptions = {
@@ -366,12 +354,7 @@ export class App<TPlugin extends IPlugin = IPlugin> {
       this.entraTokenValidator = middleware.createEntraTokenValidator(
         this.credentials.tenantId || 'common',
         this.credentials.clientId,
-        {
-          applicationIdUri: this.options.applicationIdUri,
-          audience: this.options.tokenOptions?.additionalAudience,
-          loginEndpoint: this.cloud.loginEndpoint,
-          logger: this.log
-        }
+        { applicationIdUri: this.options.applicationIdUri, loginEndpoint: this.cloud.loginEndpoint, logger: this.log }
       );
     }
 
@@ -412,9 +395,6 @@ export class App<TPlugin extends IPlugin = IPlugin> {
         skipAuth: this.options.skipAuth,
         logger: this.log,
         messagingEndpoint: this.options.messagingEndpoint ?? '/api/messages',
-        tokenOptions: {
-          additionalAudience: this.options.tokenOptions?.additionalAudience,
-        },
       });
     }
 

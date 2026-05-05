@@ -187,17 +187,6 @@ describe('ServiceTokenValidator', () => {
       );
     });
 
-    it('should pass through custom audience values', () => {
-      new ServiceTokenValidator(mockClientId, mockTenantId, undefined, undefined, undefined, 'https://api.botframework.com');
-
-      expect(JwtValidator).toHaveBeenCalledWith(
-        expect.objectContaining({
-          audience: 'https://api.botframework.com'
-        }),
-        undefined
-      );
-    });
-
     it('should use US_GOV cloud issuer and JWKS URI', () => {
       new ServiceTokenValidator(mockClientId, mockTenantId, undefined, undefined, US_GOV);
 

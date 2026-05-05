@@ -746,18 +746,6 @@ describe('JwtValidator', () => {
         expect(validator.options.audience).toEqual(['api://my-app.contoso.com/test-client-id']);
       });
 
-      it('should append custom audience values', () => {
-        const validator = createEntraTokenValidator(mockTenantId, mockClientId, {
-          applicationIdUri: 'api://my-app.contoso.com/test-client-id',
-          audience: ['https://api.botframework.com']
-        });
-
-        expect(validator.options.audience).toEqual([
-          'api://my-app.contoso.com/test-client-id',
-          'https://api.botframework.com'
-        ]);
-      });
-
       it('should not set audience when no audience options are provided', () => {
         const validator = createEntraTokenValidator(mockTenantId, mockClientId);
 

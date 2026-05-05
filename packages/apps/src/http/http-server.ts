@@ -23,12 +23,6 @@ export type HttpServerOptions = {
    * URL path for the Teams messaging endpoint
    */
   readonly messagingEndpoint: string;
-  /**
-   * Additional accepted audience value(s) for inbound token validation.
-   */
-  readonly tokenOptions?: {
-    readonly additionalAudience?: string | string[];
-  };
 };
 
 /**
@@ -56,7 +50,6 @@ export class HttpServer implements IHttpServer {
   protected cloud?: CloudEnvironment;
   protected initialized: boolean = false;
   protected serviceTokenValidator?: ServiceTokenValidator;
-  protected tokenOptions?: HttpServerOptions['tokenOptions'];
 
   private _adapter: IHttpServerAdapter;
   private _messagingEndpoint: string;
@@ -81,7 +74,6 @@ export class HttpServer implements IHttpServer {
     this.skipAuth = options.skipAuth ?? false;
     this.logger = options.logger ?? new ConsoleLogger('HttpServer');
     this._messagingEndpoint = options.messagingEndpoint;
-    this.tokenOptions = options.tokenOptions;
   }
 
   /**
@@ -108,8 +100,7 @@ export class HttpServer implements IHttpServer {
         this.credentials.tenantId,
         undefined, // serviceUrl will be validated from activity body
         this.logger,
-        deps.cloud,
-        this.tokenOptions?.additionalAudience
+        deps.cloud
       );
     }
 

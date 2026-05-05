@@ -9,21 +9,13 @@ const DEFAULTS = {
   clockTolerance: 300 // 5 minutes
 };
 
-function normalizeAudience(audience?: string | string[]): string[] {
-  if (!audience) {
-    return [];
-  }
-
-  return Array.isArray(audience) ? audience : [audience];
-}
-
 export interface IJwtValidationOptions {
   /** Required: Application/Client ID for audience validation */
   clientId: string;
 
   // Additional audience values to accept beyond the defaults
   // (clientId, api://clientId, api://botid-clientId)
-  audience?: string | string[];
+  audience?: string[];
 
   /**
    * This may be 'common', 'organizations', 'consumers' for multi-tenant apps,
@@ -93,7 +85,7 @@ export class JwtValidator {
           this.options.clientId,
           `api://botid-${this.options.clientId}`,
           `api://${this.options.clientId}`,
-          ...normalizeAudience(this.options.audience),
+          ...(this.options.audience ?? []),
         ],
         issuer: undefined,
         ignoreExpiration: false,
@@ -285,21 +277,15 @@ export const createEntraTokenValidator = (
     allowedTenantIds?: string[];
     requiredScope?: string;
     applicationIdUri?: string;
-    audience?: string | string[];
     loginEndpoint?: string;
     logger?: ILogger
   },
 ) => {
-  const audience = [
-    ...(options?.applicationIdUri ? [options.applicationIdUri] : []),
-    ...normalizeAudience(options?.audience),
-  ];
-
   return new JwtValidator({
     clientId,
     tenantId,
     loginEndpoint: options?.loginEndpoint,
-    audience: audience.length > 0 ? audience : undefined,
+    audience: options?.applicationIdUri ? [options.applicationIdUri] : undefined,
     validateIssuer: {
       allowedTenantIds: options?.allowedTenantIds
     },
