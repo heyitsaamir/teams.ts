@@ -1,4 +1,4 @@
-import { IMessageActivity, InvokeResponse, ISignInFailureInvokeActivity, ITaskFetchInvokeActivity, IToken, MessageActivity, TaskModuleResponse } from '@microsoft/teams.api';
+import { IMessageActivity, InvokeResponse, ISignInFailureInvokeActivity, ITaskFetchInvokeActivity, IToken, MessageActivityInbound, TaskModuleResponse } from '@microsoft/teams.api';
 
 import { App } from './app';
 import { IActivityResponseEvent, IActivitySentEvent, IErrorEvent } from './events';
@@ -15,7 +15,7 @@ describe('App', () => {
     toString: () => 'token',
     isExpired: () => false,
   };
-  const activity: IMessageActivity = new MessageActivity();
+  const activity: IMessageActivity = new MessageActivityInbound();
 
   beforeEach(() => {
     app = createTestApp();
@@ -129,7 +129,7 @@ describe('App', () => {
       const incomingServiceUrl = 'https://incoming-service.botframework.com';
 
       // Create incoming activity with specific serviceUrl
-      const incomingActivity: IMessageActivity = new MessageActivity('hello')
+      const incomingActivity: IMessageActivity = new MessageActivityInbound('hello')
         .withFrom({ id: 'user-1', name: 'Test User', role: 'user' })
         .withRecipient({ id: 'bot-1', name: 'Test Bot', role: 'bot' })
         .withConversation({ id: 'conv-123', conversationType: 'personal' })
@@ -186,7 +186,7 @@ describe('App', () => {
       });
 
       // Process first activity with serviceUrl1
-      const activity1: IMessageActivity = new MessageActivity('hello1')
+      const activity1: IMessageActivity = new MessageActivityInbound('hello1')
         .withFrom({ id: 'user-1', name: 'Test User', role: 'user' })
         .withRecipient({ id: 'bot-1', name: 'Test Bot', role: 'bot' })
         .withConversation({ id: 'conv-1', conversationType: 'personal' })
@@ -200,7 +200,7 @@ describe('App', () => {
       });
 
       // Process second activity with serviceUrl2
-      const activity2: IMessageActivity = new MessageActivity('hello2')
+      const activity2: IMessageActivity = new MessageActivityInbound('hello2')
         .withFrom({ id: 'user-2', name: 'Test User 2', role: 'user' })
         .withRecipient({ id: 'bot-1', name: 'Test Bot', role: 'bot' })
         .withConversation({ id: 'conv-2', conversationType: 'personal' })
@@ -250,7 +250,7 @@ describe('App', () => {
   });
 
   describe('lifecycle events', () => {
-    const messageActivity: IMessageActivity = new MessageActivity('hello')
+    const messageActivity: IMessageActivity = new MessageActivityInbound('hello')
       .withFrom({ id: 'user-1', name: 'Test User', role: 'user' })
       .withRecipient({ id: 'bot-1', name: 'Test Bot', role: 'bot' })
       .withConversation({ id: 'conv-1', conversationType: 'personal' })

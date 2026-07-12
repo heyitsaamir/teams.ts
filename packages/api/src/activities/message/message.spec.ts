@@ -2,7 +2,7 @@ import { AdaptiveCard, TextBlock } from '@microsoft/teams.cards';
 
 import { Account, cardAttachment } from '../../models';
 
-import { MessageActivity } from './message';
+import { MessageActivity, MessageActivityInbound } from './message';
 
 describe('MessageActivity', () => {
   const user: Account = {
@@ -75,7 +75,7 @@ describe('MessageActivity', () => {
     const expiration = new Date();
     const card = new AdaptiveCard(new TextBlock('hello world'));
     const activity = MessageActivity.from(
-      new MessageActivity('test')
+      new MessageActivityInbound('test')
         .withText('hello ')
         .withSpeak('say something')
         .withInputHint('acceptingInput')
@@ -139,6 +139,23 @@ describe('MessageActivity', () => {
       .withTextFormat('extendedmarkdown');
 
     expect(activity.textFormat).toEqual('extendedmarkdown');
+  });
+
+  it('should keep outbound entity helpers', () => {
+    const activity = new MessageActivity('test')
+      .addAiGenerated()
+      .addFeedback('custom');
+
+    expect(activity.channelData?.feedbackLoop).toEqual({ type: 'custom' });
+    expect(activity.entities).toEqual([
+      {
+        type: 'https://schema.org/Message',
+        '@type': 'Message',
+        '@context': 'https://schema.org',
+        '@id': '',
+        additionalType: ['AIGeneratedContent'],
+      },
+    ]);
   });
 
   describe('removeMentionsText', () => {
@@ -288,14 +305,14 @@ describe('MessageActivity', () => {
     it('should default to not targeted', () => {
       const activity = new MessageActivity('hello').withRecipient({ id: '1', name: '', role: 'user' });
 
-      expect(activity.recipient.isTargeted).toBeUndefined();
+      expect(activity.recipient?.isTargeted).toBeUndefined();
       expect(activity.recipient).toBeDefined();
     });
 
     it('should set isTargeted when second parameter is true', () => {
       const activity = new MessageActivity('hello').withRecipient({ id: '1', name: '', role: 'user' }, true);
 
-      expect(activity.recipient.isTargeted).toBe(true);
+      expect(activity.recipient?.isTargeted).toBe(true);
       expect(activity.recipient).toBeDefined();
     });
 
@@ -305,11 +322,11 @@ describe('MessageActivity', () => {
         true
       );
 
-      expect(activity.recipient.isTargeted).toBe(true);
+      expect(activity.recipient?.isTargeted).toBe(true);
       expect(activity.recipient).toBeDefined();
-      expect(activity.recipient.id).toBe('user-123');
-      expect(activity.recipient.name).toBe('user');
-      expect(activity.recipient.role).toBe('user');
+      expect(activity.recipient?.id).toBe('user-123');
+      expect(activity.recipient?.name).toBe('user');
+      expect(activity.recipient?.role).toBe('user');
     });
 
     it('should maintain fluent chaining', () => {
@@ -321,8 +338,8 @@ describe('MessageActivity', () => {
       expect(activity.text).toBe('hello world');
       expect(activity.importance).toBe('high');
       expect(activity.recipient).toBeDefined();
-      expect(activity.recipient.id).toBe('user-123');
-      expect(activity.recipient.isTargeted).toBeUndefined();
+      expect(activity.recipient?.id).toBe('user-123');
+      expect(activity.recipient?.isTargeted).toBeUndefined();
     });
 
     it('should be chainable with targeted flag', () => {
@@ -334,12 +351,12 @@ describe('MessageActivity', () => {
       expect(activity.text).toBe('hello');
       expect(activity.importance).toBe('high');
       expect(activity.deliveryMode).toBe('notification');
-      expect(activity.recipient.isTargeted).toBe(true);
-      expect(activity.recipient.id).toBe('user-456');
+      expect(activity.recipient?.isTargeted).toBe(true);
+      expect(activity.recipient?.id).toBe('user-456');
     });
 
     it('should preserve isTargeted and recipient when using from()', () => {
-      const original = new MessageActivity('test')
+      const original = new MessageActivityInbound('test')
         .withRecipient({ id: 'user-789', name: '', role: 'user' }, true)
         .toInterface();
 
@@ -356,11 +373,11 @@ describe('MessageActivity', () => {
         .withImportance('high');
 
       expect(msg.text).toBe('Hello');
-      expect(msg.recipient.isTargeted).toBe(true);
+      expect(msg.recipient?.isTargeted).toBe(true);
       expect(msg.recipient).toBeDefined();
-      expect(msg.recipient.id).toBe('user-123');
-      expect(msg.recipient.name).toBe('Test User');
-      expect(msg.recipient.role).toBe('user');
+      expect(msg.recipient?.id).toBe('user-123');
+      expect(msg.recipient?.name).toBe('Test User');
+      expect(msg.recipient?.role).toBe('user');
     });
   });
 
@@ -416,7 +433,7 @@ describe('MessageActivity', () => {
     });
 
     it('should be accessible via toInterface', () => {
-      const activity = new MessageActivity('hello');
+      const activity = new MessageActivityInbound('hello');
       activity.addEntity({
         type: 'quotedReply',
         quotedReply: { messageId: 'msg-1' },

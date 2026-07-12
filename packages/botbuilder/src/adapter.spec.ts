@@ -3,7 +3,7 @@ import type { CloudAdapter, TurnContext } from 'botbuilder';
 import type e from 'express';
 
 import type { IMessageActivity } from '@microsoft/teams.api';
-import { MessageActivity } from '@microsoft/teams.api';
+import { MessageActivityInbound } from '@microsoft/teams.api';
 import { App, ExpressAdapter } from '@microsoft/teams.apps';
 
 import { BotBuilderAdapter } from './adapter';
@@ -30,7 +30,7 @@ describe('BotBuilderAdapter', () => {
   let adapter: { processActivity: jest.Mock };
   let httpServerAdapter: MockExpressAdapter;
   let adapterProcessFn: (authHeader: string, activity: any, fn: (context: TurnContext) => Promise<void>) => Promise<any>;
-  const activity: IMessageActivity = new MessageActivity();
+  const activity: IMessageActivity = new MessageActivityInbound();
   const originalEnv = { ...process.env };
 
   afterEach(() => {

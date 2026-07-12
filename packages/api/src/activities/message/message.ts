@@ -191,7 +191,7 @@ export class MessageActivityInput extends ActivityInput<'message'> implements IM
     return this;
   }
 
-  addCard(type: CardAttachmentType, content: any) {
+  addCard<T extends CardAttachmentType>(type: T, content: CardAttachmentTypes[T]['content']) {
     this.addAttachments(cardAttachment(type, content));
     return this;
   }
@@ -211,21 +211,115 @@ export class MessageActivityInput extends ActivityInput<'message'> implements IM
   }
 
   addStreamFinal() {
-    const { streamId } = this.channelData || {};
+    if (!this.channelData) {
+      this.channelData = {};
+    }
+
+    this.channelData.streamId = this.channelData.streamId || this.id;
+    this.channelData.streamType = 'final';
 
     this.addEntity({
       type: 'streaminfo',
-      streamId: streamId || this.id || '',
+      streamId: this.channelData.streamId || this.id || '',
       streamType: 'final',
       streamSequence: this.channelData?.streamSequence || 1,
     });
 
     return this;
   }
+
+  /**
+   * remove "\<at>...\</at>" text from an activity
+   */
+  stripMentionsText(options: StripMentionsTextOptions = {}) {
+    this.text = stripMentionsText(this, options);
+    return this;
+  }
+
+  /**
+   * is the recipient account mentioned
+   */
+  isRecipientMentioned() {
+    if (!this.recipient) {
+      return false;
+    }
+
+    return (this.entities || [])
+      .filter((e) => e.type === 'mention')
+      .some((e) => e.mentioned.id === this.recipient?.id);
+  }
+
+  /**
+   * get a mention by the account id if exists
+   */
+  getAccountMention(accountId: string) {
+    return (this.entities || [])
+      .filter((e) => e.type === 'mention')
+      .find((e) => e.mentioned.id === accountId);
+  }
+
+  /**
+   * get all quoted reply entities from this message
+   */
+  getQuotedMessages(): QuotedReplyEntity[] {
+    return (this.entities ?? []).filter(
+      (e): e is QuotedReplyEntity => e.type === 'quotedReply'
+    );
+  }
+
+  /**
+   * Add a quoted message reference and append a `<quoted messageId="..."/>` placeholder to text.
+   */
+  addQuote(messageId: string, text?: string): this {
+    this.addEntity({
+      type: 'quotedReply',
+      quotedReply: { messageId },
+    });
+    this.addText(`<quoted messageId="${messageId}"/>`);
+    if (text) {
+      this.addText(` ${text}`);
+    }
+    return this;
+  }
+
+  /**
+   * Prepend a quotedReply entity and `<quoted messageId="..."/>` placeholder before existing text.
+   */
+  prependQuote(messageId: string): this {
+    this.addEntity({
+      type: 'quotedReply',
+      quotedReply: { messageId },
+    });
+    const placeholder = `<quoted messageId="${messageId}"/>`;
+    const hasText = !!this.text?.trim();
+    this.text = hasText ? `${placeholder} ${this.text}` : placeholder;
+    return this;
+  }
+
+  /**
+   * Add a targeted message info entity for prompt preview.
+   */
+  addTargetedMessageInfo(messageId: string) {
+    if (this.entities) {
+      this.entities = this.entities.filter((e) => e.type !== 'quotedReply');
+    }
+
+    if (this.text) {
+      this.text = this.text.replace(`<quoted messageId="${messageId}"/>`, '').trim();
+    }
+
+    if (this.entities?.some((e) => e.type === 'targetedMessageInfo')) {
+      return this;
+    }
+
+    return this.addEntity({
+      type: 'targetedMessageInfo',
+      messageId,
+    });
+  }
 }
 
-// Extends the full inbound Activity shape for backcompat while callers migrate to MessageActivityInput.
-export class MessageActivity extends Activity<'message'> implements IMessageActivity, IMessageActivityInput {
+export class MessageActivityInbound extends Activity<'message'> implements IMessageActivity {
   /**
    * The text content of the message.
    */
@@ -308,7 +402,7 @@ export class MessageActivity extends Activity<'message'> implements IMessageActi
    * initialize from interface
    */
   static from(activity: IMessageActivity) {
-    return new MessageActivity(activity.text, activity);
+    return new MessageActivityInbound(activity.text, activity);
   }
 
   /**
@@ -330,7 +424,7 @@ export class MessageActivity extends Activity<'message'> implements IMessageActi
    * copy to a new instance
    */
   clone(options: Omit<Partial<IMessageActivity>, 'type'> = {}) {
-    return new MessageActivity(this.text, {
+    return new MessageActivityInbound(this.text, {
       ...this.toInterface(),
       ...options,
     });
@@ -579,6 +673,83 @@ export class MessageActivity extends Activity<'message'> implements IMessageActi
     const placeholder = `<quoted messageId="${messageId}"/>`;
     const hasText = !!this.text?.trim();
     this.text = hasText ? `${placeholder} ${this.text}` : placeholder;
+    return this;
+  }
+}
+
+type MessageActivityOutboundValue = Omit<Partial<IMessageActivityInput>, 'type'> &
+  Partial<Pick<IMessageActivity, 'speak' | 'inputHint' | 'importance' | 'expiration'>>;
+
+export class MessageActivity extends MessageActivityInput implements IMessageActivityInput {
+  /**
+   * The text to speak.
+   * @deprecated This will be removed by end of summer 2026.
+   */
+  speak?: string;
+
+  /**
+   * Indicates whether your bot is accepting, expecting, or ignoring user input after the message is delivered.
+   * @deprecated This will be removed by end of summer 2026.
+   */
+  inputHint?: InputHint;
+
+  /**
+   * The importance of the activity. Possible values include: 'low', 'normal', 'high'
+   * @deprecated This will be removed by end of summer 2026.
+   */
+  importance?: Importance;
+
+  /**
+   * The time at which the activity should be considered to be "expired".
+   * @deprecated This will be removed by end of summer 2026.
+   */
+  expiration?: Date;
+
+  constructor(text: string = '', value: MessageActivityOutboundValue = {}) {
+    super(text, value);
+    Object.assign(this, value);
+  }
+
+  /**
+   * Backcompat shim for callers that normalize inbound message activities through MessageActivity.
+   */
+  static from(activity: IMessageActivity) {
+    return MessageActivityInbound.from(activity);
+  }
+
+  /**
+   * The text to speak.
+   * @deprecated This will be removed by end of summer 2026.
+   */
+  withSpeak(value: string) {
+    this.speak = value;
+    return this;
+  }
+
+  /**
+   * Indicates whether your bot is accepting, expecting, or ignoring user input after the message is delivered.
+   * @deprecated This will be removed by end of summer 2026.
+   */
+  withInputHint(value: InputHint) {
+    this.inputHint = value;
+    return this;
+  }
+
+  /**
+   * The importance of the activity. Possible values include: 'low', 'normal', 'high'
+   * @deprecated This will be removed by end of summer 2026.
+   */
+  withImportance(value: Importance) {
+    this.importance = value;
+    return this;
+  }
+
+  /**
+   * The time at which the activity should be considered to be "expired".
+   * @deprecated This will be removed by end of summer 2026.
+   */
+  withExpiration(value: Date) {
+    this.expiration = value;
     return this;
   }
 }

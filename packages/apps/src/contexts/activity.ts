@@ -8,6 +8,7 @@ import {
   InvokeResponse,
   IMessageActivity,
   MessageActivity,
+  MessageActivityInbound,
   MessageDeleteActivity,
   MessageUpdateActivity,
   SentActivity,
@@ -219,7 +220,7 @@ export class ActivityContext<T extends Activity = Activity, TExtraCtx extends {}
     const { activitySender, next, ...rest } = value;
 
     if (rest.activity.type === 'message') {
-      rest.activity = MessageActivity.from(rest.activity).toInterface();
+      rest.activity = MessageActivityInbound.from(rest.activity).toInterface();
     }
 
     if (rest.activity.type === 'messageUpdate') {
@@ -309,7 +310,7 @@ export class ActivityContext<T extends Activity = Activity, TExtraCtx extends {}
     activity = toActivityParams(activity);
 
     if (activity.type === 'message') {
-      const message = MessageActivity.from(activity as IMessageActivity);
+      const message = new MessageActivity(activity.text, activity);
       message.prependQuote(messageId);
       return this.send(message);
     }
