@@ -1,4 +1,4 @@
-import { Account, MessageActivity, TypingActivity } from '@microsoft/teams.api';
+import { Account, MessageActivityInbound, TypingActivity } from '@microsoft/teams.api';
 
 import { Router } from './router';
 
@@ -20,9 +20,9 @@ describe('Router', () => {
 
       router.on('mention', handler);
 
-      expect(router.select(new MessageActivity())).toHaveLength(0);
-      expect(router.select(new MessageActivity().withRecipient(bot).addMention(user))).toHaveLength(0);
-      expect(router.select(new MessageActivity().withRecipient(bot).addMention(bot))).toHaveLength(1);
+      expect(router.select(new MessageActivityInbound())).toHaveLength(0);
+      expect(router.select(new MessageActivityInbound().withRecipient(bot).addMention(user))).toHaveLength(0);
+      expect(router.select(new MessageActivityInbound().withRecipient(bot).addMention(bot))).toHaveLength(1);
   });
 
   it('should remove system route on register of user route', () => {
@@ -49,7 +49,7 @@ describe('Router', () => {
       router.on('message', handler);
       router.on('typing', handler);
 
-      expect(router.select(new MessageActivity())).toHaveLength(2);
+      expect(router.select(new MessageActivityInbound())).toHaveLength(2);
       expect(router.select(new TypingActivity())).toHaveLength(2);
     });
   });

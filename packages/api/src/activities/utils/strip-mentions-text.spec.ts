@@ -1,10 +1,10 @@
-import { MessageActivity } from '../message';
+import { MessageActivityInbound } from '../message';
 
 import { stripMentionsText } from './strip-mentions-text';
 
 describe('Activity Utils', () => {
   describe('stripMentionsText', () => {
-    const activity = new MessageActivity('Hello <at>test-bot</at>! How are you?')
+    const activity = new MessageActivityInbound('Hello <at>test-bot</at>! How are you?')
       .withChannelId('msteams')
       .withConversation({
         id: '2',

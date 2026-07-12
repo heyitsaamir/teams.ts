@@ -5,6 +5,7 @@ import {
   ConversationReference,
   IMessageActivity,
   MessageActivity,
+  MessageActivityInbound,
   TokenExchangeResource,
   TokenPostResource,
 } from '@microsoft/teams.api';
@@ -75,7 +76,7 @@ describe('ActivityContext', () => {
     text: string,
     id?: string
   ): IMessageActivity => {
-    return new MessageActivity(text)
+    return new MessageActivityInbound(text)
       .withFrom({
         id: 'test-user',
         name: 'Test User',
@@ -212,7 +213,7 @@ describe('ActivityContext', () => {
     });
     
     it('reply to targeted message strips blockquote via addTargetedMessageInfo', async () => {
-      const activity = new MessageActivity('Hello world')
+      const activity = new MessageActivityInbound('Hello world')
         .withFrom({ id: 'test-user', name: 'Test User', role: 'user' })
         .withRecipient({ id: 'bot-id', name: 'Bot', role: 'bot' }, true)
         .withChannelId('test-channel')
@@ -266,7 +267,7 @@ describe('ActivityContext', () => {
 
     describe('targeted messages', () => {
       it('defaults send to targeted when inbound message is targeted', async () => {
-        const activity = new MessageActivity('Hello world')
+        const activity = new MessageActivityInbound('Hello world')
           .withFrom({ id: 'test-user', name: 'Test User', role: 'user' })
           .withRecipient({ id: 'bot-id', name: 'Bot', role: 'bot' }, true)
           .withChannelId('test-channel')
@@ -288,7 +289,7 @@ describe('ActivityContext', () => {
       });
 
       it('does not default send to targeted for a different conversation', async () => {
-        const activity = new MessageActivity('Hello world')
+        const activity = new MessageActivityInbound('Hello world')
           .withFrom({ id: 'test-user', name: 'Test User', role: 'user' })
           .withRecipient({ id: 'bot-id', name: 'Bot', role: 'bot' }, true)
           .withChannelId('test-channel')
@@ -320,7 +321,7 @@ describe('ActivityContext', () => {
       });
 
       it('does not default send to targeted when an explicit different recipient is supplied', async () => {
-        const activity = new MessageActivity('Hello world')
+        const activity = new MessageActivityInbound('Hello world')
           .withFrom({ id: 'test-user', name: 'Test User', role: 'user' })
           .withRecipient({ id: 'bot-id', name: 'Bot', role: 'bot' }, true)
           .withChannelId('test-channel')
@@ -367,7 +368,7 @@ describe('ActivityContext', () => {
       });
 
       it('allows explicitly public send from a targeted inbound message', async () => {
-        const activity = new MessageActivity('Hello world')
+        const activity = new MessageActivityInbound('Hello world')
           .withFrom({ id: 'test-user', name: 'Test User', role: 'user' })
           .withRecipient({ id: 'bot-id', name: 'Bot', role: 'bot' }, true)
           .withChannelId('test-channel')
@@ -429,7 +430,7 @@ describe('ActivityContext', () => {
 
     describe('prompt preview', () => {
       it('auto-populates targetedMessageInfo entity when incoming activity is targeted', async () => {
-        const activity = new MessageActivity('Hello world')
+        const activity = new MessageActivityInbound('Hello world')
           .withFrom({ id: 'test-user', name: 'Test User', role: 'user' })
           .withRecipient({ id: 'bot-id', name: 'Bot', role: 'bot' }, true)
           .withChannelId('test-channel')
@@ -468,7 +469,7 @@ describe('ActivityContext', () => {
       });
 
       it('does not overwrite existing targetedMessageInfo entity', async () => {
-        const activity = new MessageActivity('Hello world')
+        const activity = new MessageActivityInbound('Hello world')
           .withFrom({ id: 'test-user', name: 'Test User', role: 'user' })
           .withRecipient({ id: 'bot-id', name: 'Bot', role: 'bot' }, true)
           .withChannelId('test-channel')
@@ -490,7 +491,7 @@ describe('ActivityContext', () => {
       });
 
       it('auto-populates targetedMessageInfo on reply to targeted message', async () => {
-        const activity = new MessageActivity('Hello world')
+        const activity = new MessageActivityInbound('Hello world')
           .withFrom({ id: 'test-user', name: 'Test User', role: 'user' })
           .withRecipient({ id: 'bot-id', name: 'Bot', role: 'bot' }, true)
           .withChannelId('test-channel')
